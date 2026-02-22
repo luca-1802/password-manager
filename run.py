@@ -22,6 +22,8 @@ ARGON2_TIME_COST = 3
 ARGON2_MEMORY_COST = 65536
 ARGON2_PARALLELISM = 4
 
+_clipboard_timer = None
+
 def generate_key(master_pwd, salt):
     key = hash_secret_raw(
         secret=master_pwd.encode(),
@@ -92,15 +94,19 @@ def save_passwords(master_pwd, salt, passwords_dict):
         file.write(encrypted_data)
 
 def copy_to_clipboard(text):
+    global _clipboard_timer
+    if _clipboard_timer is not None:
+        _clipboard_timer.cancel()
     subprocess.run(["clip"], input=text.encode(), check=True)
     print("Copied to clipboard!")
     def clear():
         subprocess.run(["clip"], input=b"", check=True)
         print(f"\nClipboard cleared.")
-    threading.Timer(CLIPBOARD_CLEAR_SECONDS, clear).start()
+    _clipboard_timer = threading.Timer(CLIPBOARD_CLEAR_SECONDS, clear)
+    _clipboard_timer.start()
 
 def generate_password(length=16):
-    alphabet = string.ascii_letters + string.digits + "!§$%&/()=?#*@"
+    alphabet = string.ascii_letters + string.digits + "!@#$%&*?=-_+"
     return ''.join(secrets.choice(alphabet) for i in range(length))
 
 def timed_input(prompt):
