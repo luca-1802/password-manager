@@ -6,6 +6,7 @@ import Input from "../ui/Input";
 import Button from "../ui/Button";
 import { useToast } from "../ui/Toast";
 import { useClipboard } from "../../hooks/useClipboard";
+import ColoredPassword from "../ui/ColoredPassword";
 
 interface Props {
   open: boolean;
@@ -121,8 +122,8 @@ export default function AddPasswordModal({ open, onClose, onSaved, folders }: Pr
 
         {password && (
           <div className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2">
-            <code className="text-xs font-mono text-zinc-300 break-all">
-              {password}
+            <code className="text-xs font-mono break-all">
+              <ColoredPassword password={password} />
             </code>
           </div>
         )}

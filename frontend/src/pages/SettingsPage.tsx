@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Lock, Shield, Upload, Download } from "lucide-react";
+import { ArrowLeft, Lock, Shield, Upload, Download, Palette } from "lucide-react";
 import { apiFetch } from "../api";
 import type { TotpStatusResponse } from "../types";
 import { usePasswords } from "../hooks/usePasswords";
 import { useFolders } from "../hooks/useFolders";
 import { useInactivityTimeout } from "../hooks/useInactivityTimeout";
+import { useColoredPasswords } from "../hooks/useColoredPasswords";
+import { cn } from "../lib/utils";
 import Button from "../components/ui/Button";
 import TwoFactorSetupModal from "../components/vault/TwoFactorSetupModal";
 import ImportModal from "../components/vault/ImportModal";
@@ -20,6 +22,7 @@ export default function SettingsPage({ onLogout }: Props) {
   const { serverFolders, fetchPasswords } = usePasswords();
   const { folders } = useFolders(serverFolders);
 
+  const { coloredPasswords, toggleColoredPasswords } = useColoredPasswords();
   const [showExport, setShowExport] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [show2FA, setShow2FA] = useState(false);
@@ -98,6 +101,46 @@ export default function SettingsPage({ onLogout }: Props) {
               >
                 Configure
               </Button>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-3">
+            Appearance
+          </h2>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Palette
+                  className={`w-4 h-4 ${coloredPasswords ? "text-orange-500" : "text-zinc-500"}`}
+                />
+                <div>
+                  <p className="text-sm text-zinc-200">
+                    Colored passwords
+                  </p>
+                  <p className="text-xs text-zinc-500">
+                    Alternate character colors for better readability
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={coloredPasswords}
+                onClick={toggleColoredPasswords}
+                className={cn(
+                  "relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200",
+                  coloredPasswords ? "bg-orange-500" : "bg-zinc-700"
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200",
+                    coloredPasswords ? "translate-x-[18px]" : "translate-x-[3px]"
+                  )}
+                />
+              </button>
             </div>
           </div>
         </section>
