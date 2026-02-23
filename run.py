@@ -5,6 +5,7 @@ import platform
 import subprocess
 import threading
 import time
+import pyotp
 
 from backend.vault import (
     generate_key,
@@ -15,10 +16,16 @@ from backend.vault import (
     record_failed_attempt as _record_failed_attempt,
     clear_lockout,
     normalize_entries,
+    has_totp,
+    load_totp_data,
+    save_totp_data,
+    delete_totp_secret,
+    generate_backup_codes,
     SALT_SIZE,
 )
 
 VAULT_FILE = "vault.enc"
+TOTP_FILE = ".totp.enc"
 LOCKOUT_FILE = ".vault.lock"
 CLIPBOARD_CLEAR_SECONDS = 10
 MAX_LOGIN_ATTEMPTS = 3
@@ -28,20 +35,17 @@ INACTIVITY_TIMEOUT = 300
 _clipboard_timer = None
 _clipboard_lock = threading.Lock()
 
-
 def check_lockout():
     is_locked, remaining = _check_lockout(LOCKOUT_FILE)
     if is_locked:
         print(f"Vault is locked. Try again in {remaining} seconds.")
         sys.exit(1)
 
-
 def record_failed_attempt():
     locked, _ = _record_failed_attempt(LOCKOUT_FILE, MAX_LOGIN_ATTEMPTS)
     if locked:
         print(f"Too many failed attempts. Vault locked.")
     return locked
-
 
 def copy_to_clipboard(text):
     global _clipboard_timer
@@ -75,7 +79,6 @@ def copy_to_clipboard(text):
             _clipboard_timer.cancel()
         _clipboard_timer = threading.Timer(CLIPBOARD_CLEAR_SECONDS, clear)
         _clipboard_timer.start()
-
 
 def timed_input(prompt):
     start = time.time()
@@ -120,6 +123,31 @@ def run():
         sys.exit(1)
 
     clear_lockout(LOCKOUT_FILE)
+
+    if has_totp(TOTP_FILE):
+        totp_data = load_totp_data(fernet_key, TOTP_FILE)
+        if totp_data is None:
+            print("Error: Could not decrypt 2FA configuration.")
+            sys.exit(1)
+        totp = pyotp.TOTP(totp_data["secret"])
+        for _totp_attempt in range(3):
+            code = input("Enter 2FA code (or backup code): ").strip()
+            if code.isdigit() and len(code) == 6 and totp.verify(code, valid_window=1):
+                break
+            if code.isalnum() and len(code) == 8:
+                backup_codes = totp_data.get("backup_codes", [])
+                if code.lower() in backup_codes:
+                    backup_codes.remove(code.lower())
+                    totp_data["backup_codes"] = backup_codes
+                    save_totp_data(fernet_key, salt, totp_data, TOTP_FILE)
+                    remaining = len(backup_codes)
+                    print(f"Backup code accepted. ({remaining} remaining)")
+                    break
+            print("Invalid code.")
+        else:
+            print("Too many failed 2FA attempts.")
+            sys.exit(1)
+
     print("Vault opened!")
 
     while True:
@@ -127,9 +155,10 @@ def run():
         print("1. Add a new Password")
         print("2. Get an existing Password")
         print("3. Generate a secure Password")
-        print("4. Exit")
+        print("4. Manage 2FA")
+        print("5. Exit")
 
-        choice = timed_input("Select an option (1-4): ")
+        choice = timed_input("Select an option (1-5): ")
 
         if choice == '1':
             website = timed_input("Website/App: ").lower()
@@ -183,6 +212,68 @@ def run():
                 length = 16
             print(f"Generated password: {generate_password(length)}")
         elif choice == '4':
+            if has_totp(TOTP_FILE):
+                totp_data = load_totp_data(fernet_key, TOTP_FILE)
+                remaining = len(totp_data.get("backup_codes", [])) if totp_data else 0
+                print(f"\n2FA is currently ENABLED. ({remaining} backup codes remaining)")
+                print("1. Disable 2FA")
+                print("2. Regenerate backup codes")
+                print("3. Back")
+                sub = timed_input("Select (1-3): ")
+                if sub == '1':
+                    code = input("Enter current 2FA code to confirm: ").strip()
+                    if totp_data and pyotp.TOTP(totp_data["secret"]).verify(code, valid_window=1):
+                        delete_totp_secret(TOTP_FILE)
+                        print("2FA has been disabled.")
+                    else:
+                        print("Invalid code. 2FA remains enabled.")
+                elif sub == '2':
+                    code = input("Enter current 2FA code to confirm: ").strip()
+                    if totp_data and pyotp.TOTP(totp_data["secret"]).verify(code, valid_window=1):
+                        new_codes = generate_backup_codes()
+                        totp_data["backup_codes"] = new_codes
+                        save_totp_data(fernet_key, salt, totp_data, TOTP_FILE)
+                        print("\nNew backup codes:")
+                        for i, c in enumerate(new_codes, 1):
+                            print(f"  {i:2d}. {c}")
+                        print("\nSave these codes in a safe place!")
+                    else:
+                        print("Invalid code.")
+            else:
+                print("\n2FA is currently DISABLED.")
+                print("1. Enable 2FA")
+                print("2. Back")
+                sub = timed_input("Select (1-2): ")
+                if sub == '1':
+                    secret = pyotp.random_base32()
+                    uri = pyotp.TOTP(secret).provisioning_uri(
+                        name="vault", issuer_name="PasswordVault"
+                    )
+                    print(f"\nYour 2FA secret key: {secret}")
+                    print(f"Provisioning URI: {uri}")
+                    try:
+                        import qrcode
+                        qr = qrcode.QRCode(border=1)
+                        qr.add_data(uri)
+                        qr.print_ascii(invert=True)
+                    except ImportError:
+                        pass
+                    print("\nScan the QR code or enter the secret in your authenticator app.")
+                    code = input("Enter the 6-digit code to verify: ").strip()
+                    if pyotp.TOTP(secret).verify(code, valid_window=1):
+                        backup_codes = generate_backup_codes()
+                        save_totp_data(fernet_key, salt, {
+                            "secret": secret,
+                            "backup_codes": backup_codes,
+                        }, TOTP_FILE)
+                        print("2FA has been enabled!")
+                        print("\nBackup codes:")
+                        for i, c in enumerate(backup_codes, 1):
+                            print(f"  {i:2d}. {c}")
+                        print("\nSave these codes in a safe place!")
+                    else:
+                        print("Invalid code. 2FA was NOT enabled.")
+        elif choice == '5':
             print("Goodbye.")
             break
         else:

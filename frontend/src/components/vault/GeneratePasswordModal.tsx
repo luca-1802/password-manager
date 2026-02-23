@@ -25,6 +25,8 @@ export default function GeneratePasswordModal({ open, onClose }: Props) {
     );
     if (res?.ok) {
       setPassword(res.data.password);
+    } else {
+      toast("error", "Failed to generate password");
     }
     setGenerating(false);
   };

@@ -33,7 +33,7 @@ export async function apiFetch<T = Record<string, unknown>>(
 
   const data = await res.json().catch(() => null);
 
-  if (res.status === 401) {
+  if (res.status === 401 && !path.startsWith("/auth/")) {
     window.location.href = "/";
     return null;
   }

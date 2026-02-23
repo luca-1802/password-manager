@@ -13,19 +13,23 @@ function App() {
   useEffect(() => {
     const checkAuth = async () => {
       const res = await apiFetch<AuthStatus>("/auth/status");
-      if (res?.data) setAuthState(res.data);
+      if (res?.data) {
+        setAuthState(res.data);
+      } else {
+        setAuthState({ authenticated: false, is_new_vault: true, pending_2fa: false, totp_enabled: false });
+      }
     };
     checkAuth();
   }, []);
 
   const onLogin = () => {
-    setAuthState({ authenticated: true, is_new_vault: false });
+    setAuthState({ authenticated: true, is_new_vault: false, pending_2fa: false, totp_enabled: false });
     navigate("/vault");
   };
 
   const onLogout = async () => {
     await apiFetch("/auth/logout", { method: "POST" });
-    setAuthState({ authenticated: false, is_new_vault: false });
+    setAuthState({ authenticated: false, is_new_vault: false, pending_2fa: false, totp_enabled: false });
     navigate("/");
   };
 
@@ -48,6 +52,7 @@ function App() {
             ) : (
               <LoginPage
                 isNewVault={authState.is_new_vault}
+                pendingTwoFa={authState.pending_2fa}
                 onLogin={onLogin}
               />
             )
