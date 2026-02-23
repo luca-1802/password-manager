@@ -1,0 +1,276 @@
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Eye,
+  EyeOff,
+  Copy,
+  Pencil,
+  Trash2,
+  Check,
+  X,
+  User,
+} from "lucide-react";
+import { cn, getLetterColor } from "../../lib/utils";
+import { useToast } from "../ui/Toast";
+import { useClipboard } from "../../hooks/useClipboard";
+
+interface Props {
+  website: string;
+  index: number;
+  username: string;
+  password: string;
+  onEdit: (
+    website: string,
+    index: number,
+    username: string,
+    password: string
+  ) => Promise<unknown>;
+  onDelete: (website: string, index: number) => Promise<unknown>;
+}
+
+export default function PasswordCard({
+  website,
+  index,
+  username,
+  password,
+  onEdit,
+  onDelete,
+}: Props) {
+  const [showPwd, setShowPwd] = useState(false);
+  const [showEditPwd, setShowEditPwd] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editUser, setEditUser] = useState(username);
+  const [editPwd, setEditPwd] = useState(password);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const { toast } = useToast();
+  const { copy, copied } = useClipboard();
+
+  const letter = website[0] || "?";
+  const color = getLetterColor(letter);
+
+  const handleCopy = async () => {
+    await copy(password);
+    toast("success", "Copied to clipboard");
+  };
+
+  const handleSave = async () => {
+    if (!editUser.trim() || !editPwd) {
+      toast("error", "Username and password are required");
+      return;
+    }
+    const res = await onEdit(website, index, editUser, editPwd);
+    if (res && typeof res === "object" && "ok" in res && (res as { ok: boolean }).ok) {
+      setEditing(false);
+      toast("success", "Credential updated");
+    } else {
+      toast("error", "Failed to update credential");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      setTimeout(() => setConfirmDelete(false), 3000);
+      return;
+    }
+    const res = await onDelete(website, index);
+    if (res && typeof res === "object" && "ok" in res && (res as { ok: boolean }).ok) {
+      toast("info", `Removed credential for ${website}`);
+    } else {
+      toast("error", "Failed to delete credential");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditing(false);
+    setShowEditPwd(false);
+    setEditUser(username);
+    setEditPwd(password);
+  };
+
+  return (
+    <div className="group">
+      <AnimatePresence mode="wait">
+        {editing ? (
+          <motion.div
+            key="editing"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
+            className="px-5 py-4 bg-zinc-800/10"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div
+                  className="relative w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ring-1 ring-white/[0.06]"
+                  style={{
+                    backgroundColor: color + "14",
+                    color,
+                    boxShadow: `0 0 12px ${color}18`,
+                  }}
+                >
+                  {letter.toUpperCase()}
+                </div>
+                <div>
+                  <span className="text-sm font-semibold text-zinc-100 tracking-tight">
+                    {website}
+                  </span>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">Editing credentials</p>
+                </div>
+              </div>
+              <button
+                onClick={handleCancelEdit}
+                className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors duration-150"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2.5">
+              <div className="relative">
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
+                <input
+                  value={editUser}
+                  onChange={(e) => setEditUser(e.target.value)}
+                  placeholder="Username"
+                  className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg pl-10 pr-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150"
+                />
+              </div>
+              <div className="relative">
+                <input
+                  type={showEditPwd ? "text" : "password"}
+                  value={editPwd}
+                  onChange={(e) => setEditPwd(e.target.value)}
+                  placeholder="Password"
+                  className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg pl-3.5 pr-10 py-2.5 text-sm font-mono text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowEditPwd(!showEditPwd)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-zinc-600 hover:text-zinc-400 transition-colors duration-150"
+                  aria-label={showEditPwd ? "Hide password" : "Show password"}
+                >
+                  {showEditPwd ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={handleCancelEdit}
+                className="text-zinc-400 hover:text-zinc-200 text-xs font-medium px-3.5 py-2 rounded-lg hover:bg-zinc-800/60 transition-colors duration-150"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium px-4 py-2 rounded-lg border border-zinc-700 transition-colors duration-150"
+              >
+                <span className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5" />
+                  Save changes
+                </span>
+              </button>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="display"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
+          >
+            <div className="flex items-center gap-4 px-5 py-3.5 hover:bg-zinc-800/30 transition-colors duration-150">
+              <div
+                className="relative w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 ring-1 ring-white/[0.06]"
+                style={{
+                  backgroundColor: color + "14",
+                  color,
+                  boxShadow: `0 0 12px ${color}18`,
+                }}
+              >
+                {letter.toUpperCase()}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-zinc-100 truncate tracking-tight">
+                  {website}
+                </div>
+                <div className="text-xs text-zinc-500 truncate mt-0.5">{username}</div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center">
+                  {showPwd ? (
+                    <code className="text-xs font-mono text-zinc-300 max-w-[140px] truncate bg-zinc-800/50 px-2.5 py-1 rounded-md border border-zinc-800/80">
+                      {password}
+                    </code>
+                  ) : (
+                    <span className="inline-flex items-center gap-px text-zinc-600 bg-zinc-800/40 px-2.5 py-1 rounded-md border border-zinc-800/60">
+                      <span className="text-[10px] tracking-[0.18em]">
+                        ••••••••
+                      </span>
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowPwd(!showPwd)}
+                  className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors duration-150"
+                  title={showPwd ? "Hide password" : "Show password"}
+                  aria-label={showPwd ? "Hide password" : "Show password"}
+                >
+                  {showPwd ? (
+                    <EyeOff className="w-3.5 h-3.5" />
+                  ) : (
+                    <Eye className="w-3.5 h-3.5" />
+                  )}
+                </button>
+                <button
+                  onClick={handleCopy}
+                  className={cn(
+                    "p-1.5 rounded-lg transition-colors duration-150",
+                    copied
+                      ? "text-emerald-400 bg-emerald-500/10"
+                      : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60"
+                  )}
+                  title="Copy password"
+                  aria-label="Copy password"
+                >
+                  {copied ? (
+                    <Check className="w-3.5 h-3.5" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setEditing(true)}
+                  className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors duration-150"
+                  title="Edit"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className={cn(
+                    "p-1.5 rounded-lg transition-all duration-150",
+                    confirmDelete
+                      ? "text-red-400 bg-red-500/10 ring-1 ring-red-500/20"
+                      : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60"
+                  )}
+                  title={confirmDelete ? "Click again to confirm" : "Delete"}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
