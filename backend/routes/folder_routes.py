@@ -77,6 +77,10 @@ def create_folder():
 @folder_bp.route("/<name>", methods=["PUT"])
 @require_auth
 def rename_folder(name):
+    folder_err = validate_folder(name)
+    if folder_err:
+        return jsonify({"error": folder_err}), 400
+
     data = request.get_json()
     if not data or not data.get("new_name"):
         return jsonify({"error": "New folder name is required"}), 400
@@ -144,6 +148,10 @@ def rename_folder(name):
 @folder_bp.route("/<name>", methods=["DELETE"])
 @require_auth
 def delete_folder(name):
+    folder_err = validate_folder(name)
+    if folder_err:
+        return jsonify({"error": folder_err}), 400
+
     try:
         key_raw, salt, vault_path = get_session_material()
     except Exception as e:
