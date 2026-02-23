@@ -16,6 +16,8 @@ import type { Credential } from "../types";
 import { usePasswords } from "../hooks/usePasswords";
 import { useFolders } from "../hooks/useFolders";
 import { useInactivityTimeout } from "../hooks/useInactivityTimeout";
+import { useAutoLockOnHidden } from "../hooks/useAutoLockOnHidden";
+import { useVisibilityLock } from "../hooks/useVisibilityLock";
 import { useBreachCheck } from "../hooks/useBreachCheck";
 import { useToast } from "../components/ui/Toast";
 import Header from "../components/layout/Header";
@@ -63,6 +65,8 @@ export default function VaultPage({ onLogout }: Props) {
   );
 
   useInactivityTimeout(onLogout);
+  const { autoLockOnHidden } = useAutoLockOnHidden();
+  useVisibilityLock(onLogout, autoLockOnHidden);
 
   useEffect(() => {
     fetchPasswords();
