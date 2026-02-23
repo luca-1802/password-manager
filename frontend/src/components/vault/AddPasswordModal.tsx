@@ -7,6 +7,7 @@ import Button from "../ui/Button";
 import { useToast } from "../ui/Toast";
 import { useClipboard } from "../../hooks/useClipboard";
 import ColoredPassword from "../ui/ColoredPassword";
+import PasswordStrengthIndicator from "../ui/PasswordStrengthIndicator";
 
 interface Props {
   open: boolean;
@@ -119,6 +120,8 @@ export default function AddPasswordModal({ open, onClose, onSaved, folders }: Pr
             className="shrink-0 py-2.5"
           />
         </div>
+
+        <PasswordStrengthIndicator password={password} />
 
         {password && (
           <div className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2">
