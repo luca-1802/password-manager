@@ -81,6 +81,7 @@ def create_app():
     from backend.routes.folder_routes import folder_bp
     from backend.routes.export_routes import export_bp
     from backend.routes.import_routes import import_bp
+    from backend.routes.breach_routes import breach_bp
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(export_bp, url_prefix="/api/passwords/export")
     app.register_blueprint(import_bp, url_prefix="/api/passwords/import")
@@ -88,6 +89,7 @@ def create_app():
     app.register_blueprint(folder_bp, url_prefix="/api/folders")
     app.register_blueprint(util_bp, url_prefix="/api")
     app.register_blueprint(totp_bp, url_prefix="/api/auth/2fa")
+    app.register_blueprint(breach_bp, url_prefix="/api/breach")
 
     @app.route("/", defaults={"path": ""})
     @app.route("/<path:path>")

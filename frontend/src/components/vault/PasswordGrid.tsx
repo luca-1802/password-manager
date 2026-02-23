@@ -26,6 +26,7 @@ interface Props {
   ) => Promise<unknown>;
   onDelete: (website: string, index: number) => Promise<unknown>;
   onAdd: () => void;
+  getBreachCount?: (website: string, index: number) => number | null;
 }
 
 export default function PasswordGrid({
@@ -36,6 +37,7 @@ export default function PasswordGrid({
   onEdit,
   onDelete,
   onAdd,
+  getBreachCount,
 }: Props) {
   const flatCredentials = useMemo<FlatCredential[]>(
     () =>
@@ -76,6 +78,7 @@ export default function PasswordGrid({
             folders={folders}
             onEdit={onEdit}
             onDelete={onDelete}
+            breachCount={getBreachCount?.(item.website, item.index) ?? null}
           />
         ))}
       </div>

@@ -6,3 +6,4 @@ cachelib~=0.13
 filelock~=3.16
 pyotp~=2.9
 qrcode[pil]~=8.0
+requests~=2.32

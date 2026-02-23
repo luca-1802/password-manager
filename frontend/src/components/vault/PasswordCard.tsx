@@ -13,6 +13,8 @@ import {
   User,
   GripVertical,
   FolderOpen,
+  ShieldAlert,
+  ShieldCheck,
 } from "lucide-react";
 import { cn, getLetterColor } from "../../lib/utils";
 import { useToast } from "../ui/Toast";
@@ -35,6 +37,7 @@ interface Props {
     folder?: string | null
   ) => Promise<unknown>;
   onDelete: (website: string, index: number) => Promise<unknown>;
+  breachCount?: number | null;
 }
 
 export default function PasswordCard({
@@ -46,6 +49,7 @@ export default function PasswordCard({
   folders,
   onEdit,
   onDelete,
+  breachCount,
 }: Props) {
   const [showPwd, setShowPwd] = useState(false);
   const [showEditPwd, setShowEditPwd] = useState(false);
@@ -286,6 +290,27 @@ export default function PasswordCard({
                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px] text-zinc-400 shrink-0">
                       <FolderOpen className="w-2.5 h-2.5" />
                       {folder}
+                    </span>
+                  )}
+                  {breachCount != null && breachCount > 0 && (
+                    <span
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-red-500/10 border border-red-500/20 rounded text-[10px] text-red-400 shrink-0"
+                      title={`Found in ${breachCount.toLocaleString()} breach${breachCount === 1 ? "" : "es"}`}
+                    >
+                      <ShieldAlert className="w-2.5 h-2.5" />
+                      Breached
+                    </span>
+                  )}
+                  {breachCount === 0 && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded text-[10px] text-emerald-400 shrink-0">
+                      <ShieldCheck className="w-2.5 h-2.5" />
+                      Safe
+                    </span>
+                  )}
+                  {breachCount === -1 && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px] text-zinc-500 shrink-0">
+                      <ShieldAlert className="w-2.5 h-2.5" />
+                      Unknown
                     </span>
                   )}
                 </div>
