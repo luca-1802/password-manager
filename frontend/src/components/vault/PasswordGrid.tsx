@@ -122,23 +122,10 @@ export default function PasswordGrid({
               folders={folders}
               onEdit={onEdit}
               onDelete={onDelete}
+              breachCount={getBreachCount?.(item.key, item.index) ?? null}
             />
           )
         )}
-        {pageItems.map((item) => (
-          <PasswordCard
-            key={`${item.website}-${item.index}`}
-            website={item.website}
-            index={item.index}
-            username={item.credential.username}
-            password={item.credential.password}
-            folder={item.credential.folder}
-            folders={folders}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            breachCount={getBreachCount?.(item.website, item.index) ?? null}
-          />
-        ))}
       </div>
 
       {totalCredentials > PAGE_SIZE && (

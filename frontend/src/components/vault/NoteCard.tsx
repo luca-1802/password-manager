@@ -170,9 +170,9 @@ export default function NoteCard({
                   onChange={(e) => setEditFolder(e.target.value)}
                   className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg pl-10 pr-3.5 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150 cursor-pointer"
                 >
-                  <option value="">No folder</option>
+                  <option value="" className="bg-zinc-900 text-zinc-100">No folder</option>
                   {folders.map((f) => (
-                    <option key={f} value={f}>
+                    <option key={f} value={f} className="bg-zinc-900 text-zinc-100">
                       {f}
                     </option>
                   ))}

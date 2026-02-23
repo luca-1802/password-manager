@@ -177,13 +177,13 @@ export default function AddPasswordModal({ open, onClose, onSaved, folders }: Pr
             }}
             className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-50 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150 cursor-pointer"
           >
-            <option value="">None</option>
+            <option value="" className="bg-zinc-900 text-zinc-100">None</option>
             {folders.map((f) => (
-              <option key={f} value={f}>
+              <option key={f} value={f} className="bg-zinc-900 text-zinc-100">
                 {f}
               </option>
             ))}
-            <option value="__new__">+ New folder...</option>
+            <option value="__new__" className="bg-zinc-900 text-zinc-100">+ New folder...</option>
           </select>
           {isNewFolder && (
             <input
