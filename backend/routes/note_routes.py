@@ -16,7 +16,7 @@ note_bp = Blueprint("notes", __name__)
 
 
 def _count_total_entries(passwords):
-    """Count all password entries and note entries combined."""
+    """Count all password entries, note entries, and file entries combined."""
     total = 0
     for key, value in passwords.items():
         if key == "_folders_meta":
@@ -26,6 +26,14 @@ def _count_total_entries(passwords):
                 for title, note_entries in value.items():
                     if isinstance(note_entries, list):
                         total += len(note_entries)
+                    else:
+                        total += 1
+            continue
+        if key == "_files":
+            if isinstance(value, dict):
+                for label, file_entries in value.items():
+                    if isinstance(file_entries, list):
+                        total += len(file_entries)
                     else:
                         total += 1
             continue

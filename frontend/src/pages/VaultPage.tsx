@@ -11,10 +11,11 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { Plus, Wand2, FileText, ShieldAlert, Loader2 } from "lucide-react";
-import type { Credential, SecureNote } from "../types";
+import { Plus, Wand2, FileText, Upload, ShieldAlert, Loader2 } from "lucide-react";
+import type { Credential, SecureNote, SecureFile } from "../types";
 import { usePasswords } from "../hooks/usePasswords";
 import { useNotes } from "../hooks/useNotes";
+import { useFiles } from "../hooks/useFiles";
 import { useFolders } from "../hooks/useFolders";
 import { useInactivityTimeout } from "../hooks/useInactivityTimeout";
 import { useAutoLockOnHidden } from "../hooks/useAutoLockOnHidden";
@@ -27,6 +28,7 @@ import FolderBar, { type FolderFilter } from "../components/vault/FolderBar";
 import PasswordGrid from "../components/vault/PasswordGrid";
 import AddPasswordModal from "../components/vault/AddPasswordModal";
 import AddNoteModal from "../components/vault/AddNoteModal";
+import AddFileModal from "../components/vault/AddFileModal";
 import GeneratePasswordModal from "../components/vault/GeneratePasswordModal";
 
 interface Props {
@@ -39,20 +41,22 @@ interface DragData {
   username: string;
   password: string;
   folder?: string | null;
-  entryType?: "password" | "note";
+  entryType?: "password" | "note" | "file";
 }
 
 export default function VaultPage({ onLogout }: Props) {
   const navigate = useNavigate();
-  const { passwords, notes, serverFolders, fetchPasswords, editPassword, deletePassword } =
+  const { passwords, notes, files, serverFolders, fetchPasswords, editPassword, deletePassword } =
     usePasswords();
   const { editNote, deleteNote } = useNotes(fetchPasswords);
+  const { editFile, deleteFile, downloadFile } = useFiles(fetchPasswords);
   const { folders, createFolder, renameFolder, deleteFolder } =
     useFolders(serverFolders);
   const [search, setSearch] = useState("");
   const [folderFilter, setFolderFilter] = useState<FolderFilter>("all");
   const [showAdd, setShowAdd] = useState(false);
   const [showAddNote, setShowAddNote] = useState(false);
+  const [showAddFile, setShowAddFile] = useState(false);
   const [showGenerate, setShowGenerate] = useState(false);
   const [page, setPage] = useState(1);
   const [activeDrag, setActiveDrag] = useState<DragData | null>(null);
@@ -117,6 +121,33 @@ export default function VaultPage({ onLogout }: Props) {
         )
       );
     });
+
+  const filteredFiles = Object.entries(files)
+    .map(([label, fileEntries]) => {
+      const filteredEntries = fileEntries.filter((f: SecureFile) => {
+        if (folderFilter === "unfiled") return !f.folder;
+        if (folderFilter !== "all") return f.folder === folderFilter;
+        return true;
+      });
+      return [label, filteredEntries] as [string, SecureFile[]];
+    })
+    .filter(([label, fileEntries]) => {
+      if (fileEntries.length === 0) return false;
+      const q = search.toLowerCase();
+      return (
+        label.toLowerCase().includes(q) ||
+        fileEntries.some(
+          (f) =>
+            f.original_name.toLowerCase().includes(q) ||
+            (f.description && f.description.toLowerCase().includes(q))
+        )
+      );
+    });
+
+  const totalFiles = Object.values(files).reduce(
+    (acc, fileEntries) => acc + fileEntries.length,
+    0
+  );
 
   const totalPasswords = Object.values(passwords).reduce(
     (acc, creds) => acc + creds.length,
@@ -184,7 +215,9 @@ export default function VaultPage({ onLogout }: Props) {
     if ((data.folder || null) === targetFolder) return;
 
     let res;
-    if (data.entryType === "note") {
+    if (data.entryType === "file") {
+      res = await editFile(data.website, data.index, undefined, targetFolder);
+    } else if (data.entryType === "note") {
       res = await editNote(data.website, data.index, undefined, targetFolder);
     } else {
       res = await editPassword(
@@ -221,7 +254,7 @@ export default function VaultPage({ onLogout }: Props) {
     >
       <div className="min-h-screen bg-bg">
         <Header
-          entryCount={totalPasswords + totalNotes}
+          entryCount={totalPasswords + totalNotes + totalFiles}
           onSettings={() => navigate("/settings")}
           onLock={onLogout}
         />
@@ -288,11 +321,19 @@ export default function VaultPage({ onLogout }: Props) {
               <FileText className="w-3.5 h-3.5" />
               Note
             </button>
+            <button
+              onClick={() => setShowAddFile(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors cursor-pointer"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              File
+            </button>
           </div>
 
           <PasswordGrid
             entries={filtered}
             notes={filteredNotes}
+            files={filteredFiles}
             page={page}
             setPage={setPage}
             folders={folders}
@@ -300,6 +341,9 @@ export default function VaultPage({ onLogout }: Props) {
             onDelete={deletePassword}
             onEditNote={editNote}
             onDeleteNote={deleteNote}
+            onEditFile={editFile}
+            onDeleteFile={deleteFile}
+            onDownloadFile={downloadFile}
             onAdd={() => setShowAdd(true)}
             getBreachCount={getBreachCount}
           />
@@ -325,6 +369,16 @@ export default function VaultPage({ onLogout }: Props) {
           folders={folders}
         />
 
+        <AddFileModal
+          open={showAddFile}
+          onClose={() => setShowAddFile(false)}
+          onSaved={() => {
+            setShowAddFile(false);
+            fetchPasswords();
+          }}
+          folders={folders}
+        />
+
         <GeneratePasswordModal
           open={showGenerate}
           onClose={() => setShowGenerate(false)}
@@ -337,7 +391,11 @@ export default function VaultPage({ onLogout }: Props) {
             <div className="text-sm font-semibold text-zinc-100">
               {activeDrag.website}
             </div>
-            {activeDrag.username ? (
+            {activeDrag.entryType === "file" ? (
+              <div className="text-xs text-zinc-500 mt-0.5">
+                Secure File
+              </div>
+            ) : activeDrag.username ? (
               <div className="text-xs text-zinc-500 mt-0.5">
                 {activeDrag.username}
               </div>

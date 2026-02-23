@@ -1,8 +1,9 @@
 import { useMemo, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { Credential, SecureNote, RecoveryQuestion } from "../../types";
+import type { Credential, SecureNote, SecureFile, RecoveryQuestion } from "../../types";
 import PasswordCard from "./PasswordCard";
 import NoteCard from "./NoteCard";
+import FileCard from "./FileCard";
 import EmptyState from "./EmptyState";
 
 const PAGE_SIZE = 10;
@@ -10,14 +11,16 @@ const PAGE_SIZE = 10;
 type FlatEntry = {
   key: string;
   index: number;
-  entryType: "password" | "note";
+  entryType: "password" | "note" | "file";
   credential?: Credential;
   note?: SecureNote;
+  file?: SecureFile;
 };
 
 interface Props {
   entries: [string, Credential[]][];
   notes?: [string, SecureNote[]][];
+  files?: [string, SecureFile[]][];
   page: number;
   setPage: (page: number) => void;
   folders: string[];
@@ -39,6 +42,14 @@ interface Props {
     recovery_questions?: RecoveryQuestion[] | null
   ) => Promise<unknown>;
   onDeleteNote: (title: string, index: number) => Promise<unknown>;
+  onEditFile?: (
+    label: string,
+    index: number,
+    description?: string | null,
+    folder?: string | null
+  ) => Promise<unknown>;
+  onDeleteFile?: (label: string, index: number) => Promise<unknown>;
+  onDownloadFile?: (label: string, index: number, originalName: string) => Promise<unknown>;
   onAdd: () => void;
   getBreachCount?: (website: string, index: number) => number | null;
 }
@@ -46,6 +57,7 @@ interface Props {
 export default function PasswordGrid({
   entries,
   notes,
+  files,
   page,
   setPage,
   folders,
@@ -53,6 +65,9 @@ export default function PasswordGrid({
   onDelete,
   onEditNote,
   onDeleteNote,
+  onEditFile,
+  onDeleteFile,
+  onDownloadFile,
   onAdd,
   getBreachCount,
 }: Props) {
@@ -73,8 +88,16 @@ export default function PasswordGrid({
         note,
       }))
     );
-    return [...passwordEntries, ...noteEntries];
-  }, [entries, notes]);
+    const fileEntries = (files || []).flatMap(([label, fileList]) =>
+      fileList.map((file, index) => ({
+        key: label,
+        index,
+        entryType: "file" as const,
+        file,
+      }))
+    );
+    return [...passwordEntries, ...noteEntries, ...fileEntries];
+  }, [entries, notes, files]);
 
   const totalCredentials = flatEntries.length;
   const totalPages = Math.max(1, Math.ceil(totalCredentials / PAGE_SIZE));
@@ -89,7 +112,7 @@ export default function PasswordGrid({
   const startIndex = (currentPage - 1) * PAGE_SIZE;
   const pageItems = flatEntries.slice(startIndex, startIndex + PAGE_SIZE);
 
-  if (entries.length === 0 && (!notes || notes.length === 0)) {
+  if (entries.length === 0 && (!notes || notes.length === 0) && (!files || files.length === 0)) {
     return <EmptyState onAdd={onAdd} />;
   }
 
@@ -97,7 +120,22 @@ export default function PasswordGrid({
     <div>
       <div className="border border-zinc-800 rounded-lg overflow-hidden divide-y divide-zinc-800/50">
         {pageItems.map((item) =>
-          item.entryType === "note" && item.note ? (
+          item.entryType === "file" && item.file ? (
+            <FileCard
+              key={`file-${item.key}-${item.index}`}
+              label={item.key}
+              index={item.index}
+              originalName={item.file.original_name}
+              size={item.file.size}
+              description={item.file.description}
+              folder={item.file.folder}
+              uploadedAt={item.file.uploaded_at}
+              folders={folders}
+              onEdit={onEditFile!}
+              onDelete={onDeleteFile!}
+              onDownload={onDownloadFile!}
+            />
+          ) : item.entryType === "note" && item.note ? (
             <NoteCard
               key={`note-${item.key}-${item.index}`}
               title={item.key}
