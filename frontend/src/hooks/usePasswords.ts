@@ -1,19 +1,21 @@
 import { useState, useCallback } from "react";
 import { apiFetch } from "../api";
-import type { PasswordMap, NotesMap, RecoveryQuestion } from "../types";
+import type { PasswordMap, NotesMap, FilesMap, RecoveryQuestion } from "../types";
 
 export function usePasswords() {
   const [passwords, setPasswords] = useState<PasswordMap>({});
   const [notes, setNotes] = useState<NotesMap>({});
+  const [files, setFiles] = useState<FilesMap>({});
   const [serverFolders, setServerFolders] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchPasswords = useCallback(async () => {
     setLoading(true);
-    const res = await apiFetch<{ passwords: PasswordMap; notes: NotesMap; folders: string[] }>("/passwords/");
+    const res = await apiFetch<{ passwords: PasswordMap; notes: NotesMap; files: FilesMap; folders: string[] }>("/passwords/");
     if (res?.ok) {
       setPasswords(res.data.passwords);
       setNotes(res.data.notes ?? {});
+      setFiles(res.data.files ?? {});
       setServerFolders(res.data.folders ?? []);
     }
     setLoading(false);
@@ -82,6 +84,7 @@ export function usePasswords() {
   return {
     passwords,
     notes,
+    files,
     serverFolders,
     loading,
     fetchPasswords,

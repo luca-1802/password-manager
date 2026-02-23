@@ -17,6 +17,7 @@ SALT_SIZE = 16
 NONCE_SIZE = 12
 VAULT_MAGIC = b"PV02"
 EXPORT_MAGIC = b"PX01"
+FILE_MAGIC = b"PF01"
 ARGON2_TIME_COST = 3
 ARGON2_MEMORY_COST = 65536
 ARGON2_PARALLELISM = 4
@@ -41,6 +42,23 @@ def _aes_gcm_decrypt(key_raw, nonce_and_ct, aad):
     nonce = nonce_and_ct[:NONCE_SIZE]
     ct = nonce_and_ct[NONCE_SIZE:]
     return AESGCM(key_raw).decrypt(nonce, ct, aad)
+
+def encrypt_file(key_raw, file_bytes):
+    """Encrypt file bytes using AES-256-GCM, returns FILE_MAGIC + nonce + ciphertext."""
+    nonce_and_ct = _aes_gcm_encrypt(key_raw, file_bytes, FILE_MAGIC)
+    return FILE_MAGIC + nonce_and_ct
+
+def decrypt_file(key_raw, file_data):
+    """Decrypt file data (FILE_MAGIC + nonce + ciphertext), returns plaintext bytes."""
+    if len(file_data) < 4 + NONCE_SIZE + 16:
+        raise VaultDecryptionError("File is too short or corrupted")
+    if file_data[:4] != FILE_MAGIC:
+        raise VaultDecryptionError("Invalid encrypted file format")
+    nonce_and_ct = file_data[4:]
+    try:
+        return _aes_gcm_decrypt(key_raw, nonce_and_ct, FILE_MAGIC)
+    except Exception:
+        raise VaultDecryptionError("Failed to decrypt file (invalid key or corrupted)")
 
 def load_passwords(master_pwd, vault_path):
     if not os.path.exists(vault_path):

@@ -61,3 +61,15 @@ export interface BreachCheckResponse {
 }
 
 export type BreachResults = Record<string, number>;
+
+export interface SecureFile {
+  type: "file";
+  file_id: string;
+  original_name: string;
+  size: number;
+  description?: string | null;
+  folder?: string | null;
+  uploaded_at: string;
+}
+
+export type FilesMap = Record<string, SecureFile[]>;

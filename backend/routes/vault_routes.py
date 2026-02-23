@@ -22,6 +22,10 @@ MAX_NOTE_CONTENT_LENGTH = 50000
 MAX_RECOVERY_QUESTIONS = 10
 MAX_RECOVERY_Q_LENGTH = 500
 MAX_NOTES_PER_TITLE = 100
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+MAX_FILES = 100
+MAX_FILES_PER_LABEL = 100
+MAX_FILE_DESCRIPTION_LENGTH = 1000
 
 def require_auth(f):
     @wraps(f)
@@ -31,7 +35,7 @@ def require_auth(f):
         return f(*args, **kwargs)
     return decorated
 
-RESERVED_KEYS = {"_folders_meta", "_notes"}
+RESERVED_KEYS = {"_folders_meta", "_notes", "_files"}
 
 def validate_website(website):
     if not website or len(website) > MAX_WEBSITE_LENGTH:
@@ -102,6 +106,13 @@ def count_existing_folders(passwords):
                         if isinstance(entry, dict) and entry.get("folder"):
                             folders.add(entry["folder"])
             continue
+        if key == "_files":
+            if isinstance(entries, dict):
+                for label, file_entries in entries.items():
+                    for entry in (file_entries if isinstance(file_entries, list) else [file_entries]):
+                        if isinstance(entry, dict) and entry.get("folder"):
+                            folders.add(entry["folder"])
+            continue
         for entry in (entries if isinstance(entries, list) else [entries]):
             if entry.get("folder"):
                 folders.add(entry["folder"])
@@ -134,7 +145,8 @@ def get_all():
     notes_data = passwords.get("_notes", {})
     filtered = {k: v for k, v in passwords.items() if k not in RESERVED_KEYS}
     all_folders = sorted(count_existing_folders(passwords))
-    return jsonify({"passwords": filtered, "notes": notes_data, "folders": all_folders})
+    files_data = passwords.get("_files", {})
+    return jsonify({"passwords": filtered, "notes": notes_data, "files": files_data, "folders": all_folders})
 
 @vault_bp.route("/", methods=["POST"])
 @require_auth
@@ -195,6 +207,12 @@ def add_entry():
                 total_entries += sum(
                     len(v) if isinstance(v, list) else 1
                     for v in notes_data.values()
+                )
+            files_data = passwords.get("_files", {})
+            if isinstance(files_data, dict):
+                total_entries += sum(
+                    len(v) if isinstance(v, list) else 1
+                    for v in files_data.values()
                 )
             if total_entries >= MAX_TOTAL_ENTRIES:
                 return jsonify({"error": "Vault entry limit reached"}), 400
