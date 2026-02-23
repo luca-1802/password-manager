@@ -11,12 +11,15 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { Plus, Wand2, FileText } from "lucide-react";
+import { Plus, Wand2, FileText, ShieldAlert, Loader2 } from "lucide-react";
 import type { Credential, SecureNote } from "../types";
 import { usePasswords } from "../hooks/usePasswords";
 import { useNotes } from "../hooks/useNotes";
 import { useFolders } from "../hooks/useFolders";
 import { useInactivityTimeout } from "../hooks/useInactivityTimeout";
+import { useAutoLockOnHidden } from "../hooks/useAutoLockOnHidden";
+import { useVisibilityLock } from "../hooks/useVisibilityLock";
+import { useBreachCheck } from "../hooks/useBreachCheck";
 import { useToast } from "../components/ui/Toast";
 import Header from "../components/layout/Header";
 import SearchBar from "../components/vault/SearchBar";
@@ -54,6 +57,8 @@ export default function VaultPage({ onLogout }: Props) {
   const [page, setPage] = useState(1);
   const [activeDrag, setActiveDrag] = useState<DragData | null>(null);
   const { toast } = useToast();
+  const { breachResults, checking, checkBreaches, clearBreachResults, getBreachCount } =
+    useBreachCheck();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -65,6 +70,8 @@ export default function VaultPage({ onLogout }: Props) {
   );
 
   useInactivityTimeout(onLogout);
+  const { autoLockOnHidden } = useAutoLockOnHidden();
+  useVisibilityLock(onLogout, autoLockOnHidden);
 
   useEffect(() => {
     fetchPasswords();
@@ -73,6 +80,10 @@ export default function VaultPage({ onLogout }: Props) {
   useEffect(() => {
     setPage(1);
   }, [search, folderFilter]);
+
+  useEffect(() => {
+    clearBreachResults();
+  }, [passwords, clearBreachResults]);
 
   const filtered = Object.entries(passwords)
     .map(([site, creds]) => {
@@ -228,20 +239,47 @@ export default function VaultPage({ onLogout }: Props) {
             className="mb-4"
           />
 
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowAdd(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add
+              </button>
+              <button
+                onClick={() => setShowGenerate(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors cursor-pointer"
+              >
+                <Wand2 className="w-3.5 h-3.5" />
+                Generate
+              </button>
+            </div>
             <button
-              onClick={() => setShowAdd(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors cursor-pointer"
+              onClick={async () => {
+                const res = await checkBreaches();
+                if (res?.ok) {
+                  const d = res.data;
+                  toast(
+                    d.total_breached > 0 ? "error" : "success",
+                    d.total_breached > 0
+                      ? `${d.total_breached} of ${d.total_checked} password${d.total_checked === 1 ? "" : "s"} found in breaches`
+                      : `All ${d.total_checked} password${d.total_checked === 1 ? "" : "s"} are safe`
+                  );
+                } else {
+                  toast("error", "Breach check failed");
+                }
+              }}
+              disabled={checking || totalPasswords === 0}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
             >
-              <Plus className="w-3.5 h-3.5" />
-              Add
-            </button>
-            <button
-              onClick={() => setShowGenerate(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors cursor-pointer"
-            >
-              <Wand2 className="w-3.5 h-3.5" />
-              Generate
+              {checking ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <ShieldAlert className="w-3.5 h-3.5" />
+              )}
+              {checking ? "Checking…" : "Breach Check"}
             </button>
             <button
               onClick={() => setShowAddNote(true)}
@@ -263,6 +301,7 @@ export default function VaultPage({ onLogout }: Props) {
             onEditNote={editNote}
             onDeleteNote={deleteNote}
             onAdd={() => setShowAdd(true)}
+            getBreachCount={getBreachCount}
           />
         </main>
 

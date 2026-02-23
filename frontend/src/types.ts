@@ -52,3 +52,12 @@ export interface ApiResponse<T = Record<string, unknown>> {
   status: number;
   data: T;
 }
+
+export interface BreachCheckResponse {
+  results: Record<string, number>;
+  total_checked: number;
+  total_breached: number;
+  errors: number;
+}
+
+export type BreachResults = Record<string, number>;

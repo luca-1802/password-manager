@@ -40,6 +40,7 @@ interface Props {
   ) => Promise<unknown>;
   onDeleteNote: (title: string, index: number) => Promise<unknown>;
   onAdd: () => void;
+  getBreachCount?: (website: string, index: number) => number | null;
 }
 
 export default function PasswordGrid({
@@ -53,6 +54,7 @@ export default function PasswordGrid({
   onEditNote,
   onDeleteNote,
   onAdd,
+  getBreachCount,
 }: Props) {
   const flatEntries = useMemo<FlatEntry[]>(() => {
     const passwordEntries = entries.flatMap(([website, creds]) =>
@@ -123,6 +125,20 @@ export default function PasswordGrid({
             />
           )
         )}
+        {pageItems.map((item) => (
+          <PasswordCard
+            key={`${item.website}-${item.index}`}
+            website={item.website}
+            index={item.index}
+            username={item.credential.username}
+            password={item.credential.password}
+            folder={item.credential.folder}
+            folders={folders}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            breachCount={getBreachCount?.(item.website, item.index) ?? null}
+          />
+        ))}
       </div>
 
       {totalCredentials > PAGE_SIZE && (
