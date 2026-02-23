@@ -1,20 +1,29 @@
 import os
 import re
 import time
+import base64
 import logging
 from flask import Blueprint, request, jsonify, session, current_app
-from cryptography.fernet import Fernet
-from backend.vault import generate_key, load_passwords, save_passwords_with_key, check_lockout, record_failed_attempt, clear_lockout, has_totp, SALT_SIZE
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from backend.vault import derive_key, load_passwords, save_passwords_with_key, check_lockout, record_failed_attempt, clear_lockout, has_totp, SALT_SIZE
 from backend.config import get_session_encryption_key
 
 logger = logging.getLogger(__name__)
 auth_bp = Blueprint("auth", __name__)
 
+_NONCE_SIZE = 12
+
 def _encrypt_session_value(value_bytes):
-    return Fernet(get_session_encryption_key()).encrypt(value_bytes).decode()
+    key = get_session_encryption_key()
+    nonce = os.urandom(_NONCE_SIZE)
+    ct = AESGCM(key).encrypt(nonce, value_bytes, None)
+    return base64.urlsafe_b64encode(nonce + ct).decode()
 
 def _decrypt_session_value(encrypted_str):
-    return Fernet(get_session_encryption_key()).decrypt(encrypted_str.encode())
+    key = get_session_encryption_key()
+    raw = base64.urlsafe_b64decode(encrypted_str.encode())
+    nonce, ct = raw[:_NONCE_SIZE], raw[_NONCE_SIZE:]
+    return AESGCM(key).decrypt(nonce, ct, None)
 
 def validate_master_password(pwd, min_length):
     if len(pwd) < min_length:
@@ -43,6 +52,7 @@ def status():
 @auth_bp.route("/login", methods=["POST"])
 def login():
     vault_path = current_app.config["VAULT_FILE"]
+    totp_path = current_app.config["TOTP_FILE"]
     lockout_path = current_app.config["LOCKOUT_FILE"]
     max_attempts = current_app.config["MAX_LOGIN_ATTEMPTS"]
 
@@ -61,7 +71,7 @@ def login():
     if not isinstance(master_pwd, str):
         return jsonify({"error": "Master password must be a string"}), 400
 
-    salt, passwords = load_passwords(master_pwd, vault_path)
+    salt, passwords, key_raw = load_passwords(master_pwd, vault_path)
 
     if passwords is None:
         locked, lockout_seconds = record_failed_attempt(lockout_path, max_attempts)
@@ -69,19 +79,15 @@ def login():
             return jsonify({"error": "Too many failed attempts", "locked_until": lockout_seconds}), 423
         return jsonify({"error": "Invalid password"}), 401
 
-    clear_lockout(lockout_path)
-    fernet_key = generate_key(master_pwd, salt)
-
-    # TODO: Optimize by having load_passwords return the derived key to avoid
-    # double key derivation. For now, delete master_pwd to reduce memory exposure.
     del master_pwd
 
+    clear_lockout(lockout_path)
+
     session.clear()
-    session["fernet_key"] = _encrypt_session_value(fernet_key)
+    session["vault_key"] = _encrypt_session_value(key_raw)
     session["salt"] = _encrypt_session_value(salt)
     session["last_active"] = time.time()
 
-    totp_path = current_app.config["TOTP_FILE"]
     if has_totp(totp_path):
         session["authenticated"] = False
         session["pending_2fa"] = True
@@ -119,8 +125,8 @@ def create():
 
     try:
         salt = os.urandom(SALT_SIZE)
-        fernet_key = generate_key(master_pwd, salt)
-        save_passwords_with_key(fernet_key, salt, {}, vault_path)
+        key_raw = derive_key(master_pwd, salt)
+        save_passwords_with_key(key_raw, salt, {}, vault_path)
     except Exception:
         try:
             os.unlink(vault_path)
@@ -130,7 +136,7 @@ def create():
 
     session.clear()
     session["authenticated"] = True
-    session["fernet_key"] = _encrypt_session_value(fernet_key)
+    session["vault_key"] = _encrypt_session_value(key_raw)
     session["salt"] = _encrypt_session_value(salt)
     session["last_active"] = time.time()
 

@@ -13,6 +13,8 @@ vault_bp = Blueprint("vault", __name__)
 MAX_WEBSITE_LENGTH = 253
 MAX_USERNAME_LENGTH = 256
 MAX_PASSWORD_LENGTH = 1024
+MAX_FOLDER_NAME_LENGTH = 50
+MAX_FOLDERS = 50
 MAX_TOTAL_ENTRIES = 10000
 MAX_ENTRIES_PER_SITE = 100
 
@@ -24,30 +26,60 @@ def require_auth(f):
         return f(*args, **kwargs)
     return decorated
 
+RESERVED_KEYS = {"_folders_meta"}
+
 def validate_website(website):
     if not website or len(website) > MAX_WEBSITE_LENGTH:
+        return False
+    if website.lower() in RESERVED_KEYS:
         return False
     if not re.match(r'^[\w\s.\-]+$', website):
         return False
     return True
 
+def validate_folder(folder):
+    if folder is None:
+        return None
+    if not isinstance(folder, str):
+        return "Folder must be a string"
+    folder = folder.strip()
+    if not folder:
+        return None
+    if len(folder) > MAX_FOLDER_NAME_LENGTH:
+        return f"Folder name must be at most {MAX_FOLDER_NAME_LENGTH} characters"
+    if not re.match(r'^[\w\s.\-]+$', folder):
+        return "Folder name contains invalid characters"
+    return None
+
+def count_existing_folders(passwords):
+    folders = set()
+    for key, entries in passwords.items():
+        if key == "_folders_meta":
+            if isinstance(entries, list):
+                folders.update(entries)
+            continue
+        for entry in (entries if isinstance(entries, list) else [entries]):
+            if entry.get("folder"):
+                folders.add(entry["folder"])
+    return folders
+
 def get_session_material():
-    fernet_key = _decrypt_session_value(session["fernet_key"])
+    key_raw = _decrypt_session_value(session["vault_key"])
     salt = _decrypt_session_value(session["salt"])
     vault_path = current_app.config["VAULT_FILE"]
-    return fernet_key, salt, vault_path
+    return key_raw, salt, vault_path
 
 def get_vault_data():
     try:
-        fernet_key, _, vault_path = get_session_material()
-        passwords = load_passwords_with_key(fernet_key, vault_path)
-        return fernet_key, vault_path, passwords
+        key_raw, _, vault_path = get_session_material()
+        passwords = load_passwords_with_key(key_raw, vault_path)
+        return key_raw, vault_path, passwords
     except Exception as e:
         logger.error("Failed to load vault data: %s", e)
         return None, None, None
 
-def save_vault(fernet_key, salt, vault_path, passwords):
-    save_passwords_with_key(fernet_key, salt, passwords, vault_path)
+def save_vault(key_raw, salt, vault_path, passwords):
+    save_passwords_with_key(key_raw, salt, passwords, vault_path)
 
 @vault_bp.route("/", methods=["GET"])
 @require_auth
@@ -55,7 +87,9 @@ def get_all():
     _, _, passwords = get_vault_data()
     if passwords is None:
         return jsonify({"error": "Failed to decrypt vault. Please log in again."}), 500
-    return jsonify({"passwords": passwords})
+    filtered = {k: v for k, v in passwords.items() if k != "_folders_meta"}
+    all_folders = sorted(count_existing_folders(passwords))
+    return jsonify({"passwords": filtered, "folders": all_folders})
 
 @vault_bp.route("/", methods=["POST"])
 @require_auth
@@ -71,6 +105,11 @@ def add_entry():
     website = data["website"].strip().lower()
     username = data["username"].strip()
     password = data.get("password") or generate_password()
+    folder = data.get("folder")
+    if folder is not None:
+        if not isinstance(folder, str):
+            return jsonify({"error": "Folder must be a string"}), 400
+        folder = folder.strip() or None
 
     if not validate_website(website):
         return jsonify({"error": "Invalid website name"}), 400
@@ -78,20 +117,28 @@ def add_entry():
         return jsonify({"error": f"Username must be 1-{MAX_USERNAME_LENGTH} characters"}), 400
     if len(password) > MAX_PASSWORD_LENGTH:
         return jsonify({"error": f"Password must be at most {MAX_PASSWORD_LENGTH} characters"}), 400
+    folder_err = validate_folder(folder)
+    if folder_err:
+        return jsonify({"error": folder_err}), 400
 
     try:
-        fernet_key, salt, vault_path = get_session_material()
+        key_raw, salt, vault_path = get_session_material()
     except Exception as e:
         logger.error("Failed to load vault session data: %s", e)
         return jsonify({"error": "Failed to decrypt vault. Please log in again."}), 500
 
     try:
         with FileLock(vault_path + ".lock"):
-            passwords = load_passwords_with_key(fernet_key, vault_path)
+            passwords = load_passwords_with_key(key_raw, vault_path)
 
             total_entries = sum(len(v) if isinstance(v, list) else 1 for v in passwords.values())
             if total_entries >= MAX_TOTAL_ENTRIES:
                 return jsonify({"error": "Vault entry limit reached"}), 400
+
+            if folder:
+                existing_folders = count_existing_folders(passwords)
+                if folder not in existing_folders and len(existing_folders) >= MAX_FOLDERS:
+                    return jsonify({"error": f"Maximum of {MAX_FOLDERS} folders reached"}), 400
 
             if website not in passwords:
                 passwords[website] = []
@@ -99,8 +146,11 @@ def add_entry():
             passwords[website] = normalize_entries(passwords[website])
             if len(passwords[website]) >= MAX_ENTRIES_PER_SITE:
                 return jsonify({"error": "Too many entries for this website"}), 400
-            passwords[website].append({"username": username, "password": password})
-            save_vault(fernet_key, salt, vault_path, passwords)
+            entry = {"username": username, "password": password}
+            if folder:
+                entry["folder"] = folder
+            passwords[website].append(entry)
+            save_vault(key_raw, salt, vault_path, passwords)
     except Exception as e:
         logger.error("Failed to update vault data: %s", e)
         return jsonify({"error": "Failed to decrypt vault. Please log in again."}), 500
@@ -115,14 +165,14 @@ def delete_entry(website, index):
         return jsonify({"error": "Invalid website name"}), 400
 
     try:
-        fernet_key, salt, vault_path = get_session_material()
+        key_raw, salt, vault_path = get_session_material()
     except Exception as e:
         logger.error("Failed to load vault session data: %s", e)
         return jsonify({"error": "Failed to decrypt vault. Please log in again."}), 500
 
     try:
         with FileLock(vault_path + ".lock"):
-            passwords = load_passwords_with_key(fernet_key, vault_path)
+            passwords = load_passwords_with_key(key_raw, vault_path)
 
             if website not in passwords:
                 return jsonify({"error": "Website not found"}), 404
@@ -138,7 +188,7 @@ def delete_entry(website, index):
             else:
                 passwords[website] = entries
 
-            save_vault(fernet_key, salt, vault_path, passwords)
+            save_vault(key_raw, salt, vault_path, passwords)
     except Exception as e:
         logger.error("Failed to update vault data: %s", e)
         return jsonify({"error": "Failed to decrypt vault. Please log in again."}), 500
@@ -157,14 +207,14 @@ def edit_entry(website, index):
         return jsonify({"error": "Invalid website name"}), 400
 
     try:
-        fernet_key, salt, vault_path = get_session_material()
+        key_raw, salt, vault_path = get_session_material()
     except Exception as e:
         logger.error("Failed to load vault session data: %s", e)
         return jsonify({"error": "Failed to decrypt vault. Please log in again."}), 500
 
     try:
         with FileLock(vault_path + ".lock"):
-            passwords = load_passwords_with_key(fernet_key, vault_path)
+            passwords = load_passwords_with_key(key_raw, vault_path)
 
             if website not in passwords:
                 return jsonify({"error": "Website not found"}), 404
@@ -190,9 +240,25 @@ def edit_entry(website, index):
                 if len(password) > MAX_PASSWORD_LENGTH:
                     return jsonify({"error": f"Password must be at most {MAX_PASSWORD_LENGTH} characters"}), 400
                 entries[index]["password"] = password
+            if "folder" in data:
+                folder = data["folder"]
+                if folder is not None:
+                    if not isinstance(folder, str):
+                        return jsonify({"error": "Folder must be a string"}), 400
+                    folder = folder.strip() or None
+                folder_err = validate_folder(folder)
+                if folder_err:
+                    return jsonify({"error": folder_err}), 400
+                if folder:
+                    existing_folders = count_existing_folders(passwords)
+                    if folder not in existing_folders and len(existing_folders) >= MAX_FOLDERS:
+                        return jsonify({"error": f"Maximum of {MAX_FOLDERS} folders reached"}), 400
+                    entries[index]["folder"] = folder
+                else:
+                    entries[index].pop("folder", None)
 
             passwords[website] = entries
-            save_vault(fernet_key, salt, vault_path, passwords)
+            save_vault(key_raw, salt, vault_path, passwords)
     except Exception as e:
         logger.error("Failed to update vault data: %s", e)
         return jsonify({"error": "Failed to decrypt vault. Please log in again."}), 500

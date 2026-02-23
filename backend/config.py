@@ -1,5 +1,4 @@
 import os
-import base64
 import stat
 import logging
 
@@ -41,13 +40,12 @@ def _get_or_create_secret_key():
 
 def get_session_encryption_key():
     secret = _get_or_create_secret_key()
-    derived = HKDF(
+    return HKDF(
         algorithm=hashes.SHA256(),
         length=32,
         salt=None,
         info=b"session-encryption-key",
     ).derive(secret)
-    return base64.urlsafe_b64encode(derived)
 
 class Config:
     SECRET_KEY = _get_or_create_secret_key()

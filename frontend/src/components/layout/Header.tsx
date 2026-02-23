@@ -1,22 +1,16 @@
-import { Plus, Wand2, Lock, Shield } from "lucide-react";
+import { Lock, Settings } from "lucide-react";
 import Button from "../ui/Button";
 
 interface Props {
   passwordCount: number;
-  onAdd: () => void;
-  onGenerate: () => void;
+  onSettings: () => void;
   onLock: () => void;
-  onTwoFactor: () => void;
-  twoFactorEnabled: boolean;
 }
 
 export default function Header({
   passwordCount,
-  onAdd,
-  onGenerate,
+  onSettings,
   onLock,
-  onTwoFactor,
-  twoFactorEnabled,
 }: Props) {
   return (
     <header className="sticky top-0 z-50 border-b border-zinc-800 bg-bg/95 backdrop-blur-sm">
@@ -34,27 +28,11 @@ export default function Header({
           <Button
             variant="ghost"
             size="sm"
-            onClick={onGenerate}
-            icon={<Wand2 className="w-3.5 h-3.5" />}
+            onClick={onSettings}
+            icon={<Settings className="w-3.5 h-3.5" />}
+            className="text-zinc-500"
           >
-            Generate
-          </Button>
-          <Button
-            size="sm"
-            onClick={onAdd}
-            icon={<Plus className="w-3.5 h-3.5" />}
-          >
-            Add
-          </Button>
-          <div className="w-px h-5 bg-zinc-800 mx-1" />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onTwoFactor}
-            icon={<Shield className="w-3.5 h-3.5" />}
-            className={twoFactorEnabled ? "text-green-500 hover:text-green-400" : "text-zinc-500"}
-          >
-            2FA
+            Settings
           </Button>
           <Button
             variant="ghost"

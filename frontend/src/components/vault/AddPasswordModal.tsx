@@ -11,12 +11,15 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSaved: () => void;
+  folders: string[];
 }
 
-export default function AddPasswordModal({ open, onClose, onSaved }: Props) {
+export default function AddPasswordModal({ open, onClose, onSaved, folders }: Props) {
   const [website, setWebsite] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [folder, setFolder] = useState("");
+  const [isNewFolder, setIsNewFolder] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -40,8 +43,10 @@ export default function AddPasswordModal({ open, onClose, onSaved }: Props) {
     }
 
     setLoading(true);
-    const body: Record<string, string> = { website, username };
+    const body: Record<string, unknown> = { website, username };
     if (password) body.password = password;
+    const trimmedFolder = folder.trim();
+    if (trimmedFolder) body.folder = trimmedFolder;
 
     const res = await apiFetch<{ success: boolean; password?: string }>(
       "/passwords/",
@@ -70,6 +75,8 @@ export default function AddPasswordModal({ open, onClose, onSaved }: Props) {
     setWebsite("");
     setUsername("");
     setPassword("");
+    setFolder("");
+    setIsNewFolder(false);
     setError("");
   };
 
@@ -119,6 +126,42 @@ export default function AddPasswordModal({ open, onClose, onSaved }: Props) {
             </code>
           </div>
         )}
+
+        <div>
+          <label className="block text-xs font-medium text-zinc-500 mb-1.5">
+            Folder (optional)
+          </label>
+          <select
+            value={isNewFolder ? "__new__" : folder}
+            onChange={(e) => {
+              if (e.target.value === "__new__") {
+                setIsNewFolder(true);
+                setFolder("");
+              } else {
+                setIsNewFolder(false);
+                setFolder(e.target.value);
+              }
+            }}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-50 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150 cursor-pointer"
+          >
+            <option value="">None</option>
+            {folders.map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
+            <option value="__new__">+ New folder...</option>
+          </select>
+          {isNewFolder && (
+            <input
+              value={folder}
+              onChange={(e) => setFolder(e.target.value)}
+              placeholder="Folder name"
+              maxLength={50}
+              className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150"
+            />
+          )}
+        </div>
 
         {error && (
           <p className="text-sm text-red-500 bg-red-600/10 border border-red-600/20 rounded-lg px-3 py-2">

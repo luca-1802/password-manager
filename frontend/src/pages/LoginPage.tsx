@@ -201,7 +201,7 @@ export default function LoginPage({ isNewVault, pendingTwoFa, onLogin }: Props) 
           )}
         </div>
 
-        <p className="text-center text-xs text-zinc-600 mt-6">Argon2id + Fernet encrypted</p>
+        <p className="text-center text-xs text-zinc-600 mt-6">Argon2id + AES-256-GCM encrypted</p>
       </div>
     </div>
   );

@@ -1,9 +1,12 @@
 export interface Credential {
   username: string;
   password: string;
+  folder?: string | null;
 }
 
 export type PasswordMap = Record<string, Credential[]>;
+
+export type ExportFormat = "json" | "csv" | "encrypted";
 
 export interface AuthStatus {
   authenticated: boolean;

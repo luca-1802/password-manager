@@ -16,11 +16,13 @@ interface Props {
   entries: [string, Credential[]][];
   page: number;
   setPage: (page: number) => void;
+  folders: string[];
   onEdit: (
     website: string,
     index: number,
     username: string,
-    password: string
+    password: string,
+    folder?: string | null
   ) => Promise<unknown>;
   onDelete: (website: string, index: number) => Promise<unknown>;
   onAdd: () => void;
@@ -30,6 +32,7 @@ export default function PasswordGrid({
   entries,
   page,
   setPage,
+  folders,
   onEdit,
   onDelete,
   onAdd,
@@ -69,6 +72,8 @@ export default function PasswordGrid({
             index={item.index}
             username={item.credential.username}
             password={item.credential.password}
+            folder={item.credential.folder}
+            folders={folders}
             onEdit={onEdit}
             onDelete={onDelete}
           />
