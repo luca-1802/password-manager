@@ -5,7 +5,8 @@ import base64
 import logging
 from flask import Blueprint, request, jsonify, session, current_app
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from backend.vault import derive_key, load_passwords, save_passwords_with_key, check_lockout, record_failed_attempt, clear_lockout, has_totp, SALT_SIZE
+from filelock import FileLock
+from backend.vault import derive_key, load_passwords, load_passwords_with_key, save_passwords_with_key, load_totp_data, save_totp_data, check_lockout, record_failed_attempt, clear_lockout, has_totp, SALT_SIZE
 from backend.config import get_session_encryption_key
 
 logger = logging.getLogger(__name__)
@@ -141,6 +142,65 @@ def create():
     session["last_active"] = time.time()
 
     return jsonify({"success": True}), 201
+
+@auth_bp.route("/change-password", methods=["POST"])
+def change_password():
+    if not session.get("authenticated") or session.get("pending_2fa"):
+        return jsonify({"error": "Not authenticated"}), 401
+
+    vault_path = current_app.config["VAULT_FILE"]
+    totp_path = current_app.config["TOTP_FILE"]
+    min_length = current_app.config["MIN_MASTER_PWD_LENGTH"]
+
+    data = request.get_json()
+    if not data or not data.get("current_password") or not data.get("new_password") or not data.get("confirm"):
+        return jsonify({"error": "Current password, new password, and confirmation are required"}), 400
+
+    current_password = data["current_password"]
+    new_password = data["new_password"]
+    confirm = data["confirm"]
+
+    if not isinstance(current_password, str) or not isinstance(new_password, str) or not isinstance(confirm, str):
+        return jsonify({"error": "All fields must be strings"}), 400
+
+    if new_password != confirm:
+        return jsonify({"error": "Passwords do not match"}), 400
+
+    if new_password == current_password:
+        return jsonify({"error": "New password must be different from current password"}), 400
+
+    error = validate_master_password(new_password, min_length)
+    if error:
+        return jsonify({"error": error}), 400
+
+    salt, passwords, old_key = load_passwords(current_password, vault_path)
+    del current_password
+
+    if passwords is None:
+        return jsonify({"error": "Current password is incorrect"}), 401
+
+    new_salt = os.urandom(SALT_SIZE)
+    new_key = derive_key(new_password, new_salt)
+    del new_password
+
+    try:
+        with FileLock(vault_path + ".lock"):
+            passwords = load_passwords_with_key(old_key, vault_path)
+            save_passwords_with_key(new_key, new_salt, passwords, vault_path)
+        del passwords
+    except Exception as e:
+        logger.error("Failed to re-encrypt vault: %s", e)
+        return jsonify({"error": "Failed to re-encrypt vault"}), 500
+
+    totp_data = load_totp_data(old_key, totp_path)
+    if totp_data is not None:
+        save_totp_data(new_key, new_salt, totp_data, totp_path)
+
+    session["vault_key"] = _encrypt_session_value(new_key)
+    session["salt"] = _encrypt_session_value(new_salt)
+    session["last_active"] = time.time()
+
+    return jsonify({"success": True})
 
 @auth_bp.route("/logout", methods=["POST"])
 def logout():

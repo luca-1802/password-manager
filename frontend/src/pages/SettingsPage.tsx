@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Lock, Shield, Monitor, Upload, Download, Palette } from "lucide-react";
+import { ArrowLeft, Lock, Shield, Monitor, Upload, Download, Palette, KeyRound } from "lucide-react";
 import { apiFetch } from "../api";
 import type { TotpStatusResponse } from "../types";
 import { usePasswords } from "../hooks/usePasswords";
@@ -14,6 +14,7 @@ import Button from "../components/ui/Button";
 import TwoFactorSetupModal from "../components/vault/TwoFactorSetupModal";
 import ImportModal from "../components/vault/ImportModal";
 import ExportModal from "../components/vault/ExportModal";
+import ChangePasswordModal from "../components/vault/ChangePasswordModal";
 
 interface Props {
   onLogout: () => void;
@@ -30,6 +31,7 @@ export default function SettingsPage({ onLogout }: Props) {
   const [showExport, setShowExport] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [show2FA, setShow2FA] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [backupCodesRemaining, setBackupCodesRemaining] = useState(0);
 
@@ -141,6 +143,29 @@ export default function SettingsPage({ onLogout }: Props) {
                 />
               </button>
             </div>
+
+            <div className="border-t border-zinc-800" />
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <KeyRound className="w-4 h-4 text-zinc-500" />
+                <div>
+                  <p className="text-sm text-zinc-200">
+                    Change master password
+                  </p>
+                  <p className="text-xs text-zinc-500">
+                    Re-encrypt your vault with a new password
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowChangePassword(true)}
+              >
+                Change
+              </Button>
+            </div>
           </div>
         </section>
 
@@ -251,6 +276,12 @@ export default function SettingsPage({ onLogout }: Props) {
         backupCodesRemaining={backupCodesRemaining}
         onStatusChange={setTwoFactorEnabled}
         onBackupCodesChange={setBackupCodesRemaining}
+      />
+
+      <ChangePasswordModal
+        open={showChangePassword}
+        onClose={() => setShowChangePassword(false)}
+        onLogout={onLogout}
       />
     </div>
   );
