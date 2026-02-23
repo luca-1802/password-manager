@@ -16,7 +16,7 @@ export default function SearchBar({ value, onChange, className }: Props) {
         </div>
         <input
           type="text"
-          placeholder="Search passwords..."
+          placeholder="Search vault..."
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="w-full bg-transparent border-none py-2.5 pl-2 pr-10 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-0"

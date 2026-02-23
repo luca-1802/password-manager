@@ -46,7 +46,7 @@ def export_passwords():
 
     rows = []
     for website, entries in passwords.items():
-        if website == "_folders_meta":
+        if website in ("_folders_meta", "_notes"):
             continue
         for entry in normalize_entries(entries):
             entry_folder = entry.get("folder") or None
@@ -57,12 +57,40 @@ def export_passwords():
                     pass
                 else:
                     continue
-            rows.append({
+            row = {
+                "type": "password",
                 "website": website,
                 "username": entry.get("username", ""),
                 "password": entry.get("password", ""),
                 "folder": entry_folder or "",
-            })
+            }
+            if entry.get("notes"):
+                row["notes"] = entry["notes"]
+            if entry.get("recovery_questions"):
+                row["recovery_questions"] = entry["recovery_questions"]
+            rows.append(row)
+
+    # Export standalone notes
+    notes_data = passwords.get("_notes", {})
+    for note_title, note_entries in notes_data.items():
+        for entry in normalize_entries(note_entries):
+            entry_folder = entry.get("folder") or None
+            if folders is not None:
+                if entry_folder and entry_folder in folders:
+                    pass
+                elif entry_folder is None and include_unfiled:
+                    pass
+                else:
+                    continue
+            row = {
+                "type": "note",
+                "title": note_title,
+                "content": entry.get("content", ""),
+                "folder": entry_folder or "",
+            }
+            if entry.get("recovery_questions"):
+                row["recovery_questions"] = entry["recovery_questions"]
+            rows.append(row)
 
     if fmt == "encrypted":
         json_bytes = json.dumps(rows).encode("utf-8")
@@ -79,10 +107,19 @@ def export_passwords():
         response.headers["Content-Disposition"] = "attachment; filename=vault_export.json"
         return response
 
+    # For CSV, serialize recovery_questions to JSON string
+    fieldnames = ["type", "website", "username", "password", "folder", "notes", "title", "content", "recovery_questions"]
+    csv_rows = []
+    for row in rows:
+        csv_row = dict(row)
+        if "recovery_questions" in csv_row:
+            csv_row["recovery_questions"] = json.dumps(csv_row["recovery_questions"])
+        csv_rows.append(csv_row)
+
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=["website", "username", "password", "folder"])
+    writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
     writer.writeheader()
-    writer.writerows(rows)
+    writer.writerows(csv_rows)
     content = output.getvalue()
 
     response = make_response(content)

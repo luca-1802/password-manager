@@ -154,9 +154,9 @@ export default function SettingsPage({ onLogout }: Props) {
               <div className="flex items-center gap-3">
                 <Upload className="w-4 h-4 text-zinc-500" />
                 <div>
-                  <p className="text-sm text-zinc-200">Import passwords</p>
+                  <p className="text-sm text-zinc-200">Import vault data</p>
                   <p className="text-xs text-zinc-500">
-                    Import from JSON or CSV file
+                    Import passwords and notes from JSON or CSV file
                   </p>
                 </div>
               </div>
@@ -175,9 +175,9 @@ export default function SettingsPage({ onLogout }: Props) {
               <div className="flex items-center gap-3">
                 <Download className="w-4 h-4 text-zinc-500" />
                 <div>
-                  <p className="text-sm text-zinc-200">Export passwords</p>
+                  <p className="text-sm text-zinc-200">Export vault data</p>
                   <p className="text-xs text-zinc-500">
-                    Download as JSON or CSV
+                    Download passwords and notes as JSON or CSV
                   </p>
                 </div>
               </div>

@@ -81,9 +81,11 @@ def create_app():
     from backend.routes.folder_routes import folder_bp
     from backend.routes.export_routes import export_bp
     from backend.routes.import_routes import import_bp
+    from backend.routes.note_routes import note_bp
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(export_bp, url_prefix="/api/passwords/export")
     app.register_blueprint(import_bp, url_prefix="/api/passwords/import")
+    app.register_blueprint(note_bp, url_prefix="/api/notes")
     app.register_blueprint(vault_bp, url_prefix="/api/passwords")
     app.register_blueprint(folder_bp, url_prefix="/api/folders")
     app.register_blueprint(util_bp, url_prefix="/api")

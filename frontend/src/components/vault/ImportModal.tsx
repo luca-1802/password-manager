@@ -86,11 +86,11 @@ export default function ImportModal({ open, onClose, onImported }: Props) {
   const ext = file?.name.split(".").pop()?.toUpperCase();
 
   return (
-    <Modal open={open} onClose={handleClose} title="Import Passwords">
+    <Modal open={open} onClose={handleClose} title="Import Vault">
       <div className="space-y-5">
         <p className="text-xs text-zinc-500">
-          Import passwords from a JSON, CSV, or encrypted (.enc) file. Exact
-          duplicates will be skipped.
+          Import passwords and notes from a JSON, CSV, or encrypted (.enc)
+          file. Exact duplicates will be skipped.
         </p>
 
         {!file ? (
