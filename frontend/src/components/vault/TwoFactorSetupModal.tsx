@@ -6,6 +6,7 @@ import Modal from "../ui/Modal";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 import { useToast } from "../ui/Toast";
+import ColoredPassword from "../ui/ColoredPassword";
 
 interface Props {
   open: boolean;
@@ -183,8 +184,9 @@ export default function TwoFactorSetupModal({
       </p>
       <div className="bg-zinc-800 rounded-lg p-4 grid grid-cols-2 gap-2">
         {backupCodes.map((c, i) => (
-          <code key={i} className="text-sm text-zinc-300 font-mono">
-            {String(i + 1).padStart(2, "\u00A0")}. {c}
+          <code key={i} className="text-sm font-mono">
+            <span className="text-zinc-300">{String(i + 1).padStart(2, "\u00A0")}. </span>
+            <ColoredPassword password={c} />
           </code>
         ))}
       </div>
@@ -277,8 +279,8 @@ export default function TwoFactorSetupModal({
             <div className="text-center w-full">
               <p className="text-xs text-zinc-500 mb-1.5">Or enter this key manually:</p>
               <div className="flex items-center justify-center gap-2">
-                <code className="text-sm text-zinc-300 font-mono bg-zinc-800 px-3 py-1.5 rounded select-all">
-                  {setupData.secret}
+                <code className="text-sm font-mono bg-zinc-800 px-3 py-1.5 rounded select-all">
+                  <ColoredPassword password={setupData.secret} />
                 </code>
                 <button
                   type="button"

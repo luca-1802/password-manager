@@ -17,6 +17,7 @@ import {
 import { cn, getLetterColor } from "../../lib/utils";
 import { useToast } from "../ui/Toast";
 import { useClipboard } from "../../hooks/useClipboard";
+import ColoredPassword from "../ui/ColoredPassword";
 
 interface Props {
   website: string;
@@ -283,8 +284,8 @@ export default function PasswordCard({
               <div className="flex items-center gap-2 shrink-0">
                 <div className="flex items-center">
                   {showPwd ? (
-                    <code className="text-xs font-mono text-zinc-300 max-w-[140px] truncate bg-zinc-800/50 px-2.5 py-1 rounded-md border border-zinc-800/80">
-                      {password}
+                    <code className="text-xs font-mono max-w-[140px] truncate bg-zinc-800/50 px-2.5 py-1 rounded-md border border-zinc-800/80">
+                      <ColoredPassword password={password} />
                     </code>
                   ) : (
                     <span className="inline-flex items-center gap-px text-zinc-600 bg-zinc-800/40 px-2.5 py-1 rounded-md border border-zinc-800/60">
