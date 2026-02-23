@@ -9,7 +9,8 @@ def generate():
         return jsonify({"error": "Not authenticated"}), 401
     length = request.args.get("length", 16, type=int)
     length = max(4, min(length, 128))
-    return jsonify({"password": generate_password(length)})
+    include_special = request.args.get("special", "true").lower() != "false"
+    return jsonify({"password": generate_password(length, include_special=include_special)})
 
 @util_bp.route("/health", methods=["GET"])
 def health():

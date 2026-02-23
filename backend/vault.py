@@ -268,9 +268,10 @@ def decrypt_export(password, file_data):
     except Exception:
         raise VaultDecryptionError("Wrong password or corrupted file")
 
-def generate_password(length=19):
-    if length < 4:
-        length = 4
+def generate_password(length=19, include_special=True):
+    min_chars = 4 if include_special else 3
+    if length < min_chars:
+        length = min_chars
     lower = string.ascii_lowercase
     upper = string.ascii_uppercase
     digits = string.digits
@@ -278,17 +279,21 @@ def generate_password(length=19):
 
     num_dashes = (length - 1) // 5
     raw_length = length - num_dashes
-    if raw_length < 4:
-        raw_length = 4
+    if raw_length < min_chars:
+        raw_length = min_chars
 
     password = [
         secrets.choice(lower),
         secrets.choice(upper),
         secrets.choice(digits),
-        secrets.choice(special),
     ]
-    alphabet = lower + upper + digits + special
-    password += [secrets.choice(alphabet) for _ in range(raw_length - 4)]
+    alphabet = lower + upper + digits
+
+    if include_special:
+        password.append(secrets.choice(special))
+        alphabet += special
+
+    password += [secrets.choice(alphabet) for _ in range(raw_length - len(password))]
     secrets.SystemRandom().shuffle(password)
 
     raw = "".join(password)
