@@ -13,6 +13,8 @@ import {
   User,
   GripVertical,
   FolderOpen,
+  StickyNote,
+  HelpCircle,
   ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
@@ -21,6 +23,8 @@ import { useToast } from "../ui/Toast";
 import { useClipboard } from "../../hooks/useClipboard";
 import ColoredPassword from "../ui/ColoredPassword";
 import PasswordStrengthIndicator from "../ui/PasswordStrengthIndicator";
+import RecoveryQuestionsSection from "./RecoveryQuestionsSection";
+import type { RecoveryQuestion } from "../../types";
 
 interface Props {
   website: string;
@@ -28,13 +32,17 @@ interface Props {
   username: string;
   password: string;
   folder?: string | null;
+  notes?: string | null;
+  recovery_questions?: RecoveryQuestion[] | null;
   folders: string[];
   onEdit: (
     website: string,
     index: number,
     username: string,
     password: string,
-    folder?: string | null
+    folder?: string | null,
+    notes?: string | null,
+    recovery_questions?: RecoveryQuestion[] | null
   ) => Promise<unknown>;
   onDelete: (website: string, index: number) => Promise<unknown>;
   breachCount?: number | null;
@@ -46,6 +54,8 @@ export default function PasswordCard({
   username,
   password,
   folder,
+  notes,
+  recovery_questions,
   folders,
   onEdit,
   onDelete,
@@ -57,6 +67,10 @@ export default function PasswordCard({
   const [editUser, setEditUser] = useState(username);
   const [editPwd, setEditPwd] = useState(password);
   const [editFolder, setEditFolder] = useState<string>(folder || "");
+  const [editNotes, setEditNotes] = useState(notes || "");
+  const [editRecoveryQuestions, setEditRecoveryQuestions] = useState<RecoveryQuestion[]>(
+    recovery_questions || []
+  );
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { toast } = useToast();
   const { copy, copied } = useClipboard();
@@ -65,7 +79,7 @@ export default function PasswordCard({
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
       id: dragId,
-      data: { website, index, username, password, folder },
+      data: { website, index, username, password, folder, entryType: "password" },
     });
 
   const style = transform
@@ -90,7 +104,10 @@ export default function PasswordCard({
       return;
     }
     const newFolder = editFolder.trim() || null;
-    const res = await onEdit(website, index, editUser, editPwd, newFolder);
+    const newNotes = editNotes.trim() || null;
+    const filteredRq = editRecoveryQuestions.filter(q => q.question.trim() && q.answer.trim());
+    const newRq = filteredRq.length > 0 ? filteredRq : null;
+    const res = await onEdit(website, index, editUser, editPwd, newFolder, newNotes, newRq);
     if (
       res &&
       typeof res === "object" &&
@@ -129,6 +146,8 @@ export default function PasswordCard({
     setEditUser(username);
     setEditPwd(password);
     setEditFolder(folder || "");
+    setEditNotes(notes || "");
+    setEditRecoveryQuestions(recovery_questions || []);
   };
 
   return (
@@ -227,6 +246,24 @@ export default function PasswordCard({
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-xs font-medium text-zinc-500 mb-1.5 mt-2">
+                  Notes
+                </label>
+                <textarea
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder="Notes"
+                  rows={3}
+                  maxLength={10000}
+                  className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150 resize-none"
+                />
+              </div>
+              <RecoveryQuestionsSection
+                questions={editRecoveryQuestions}
+                editing
+                onChange={setEditRecoveryQuestions}
+              />
             </div>
 
             <div className="flex justify-end gap-2 mt-4">
@@ -314,6 +351,22 @@ export default function PasswordCard({
                     </span>
                   )}
                 </div>
+                {(notes || (recovery_questions && recovery_questions.length > 0)) && (
+                  <div className="flex items-center gap-1 mt-1">
+                    {notes && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] text-zinc-500">
+                        <StickyNote className="w-2.5 h-2.5" />
+                        Note
+                      </span>
+                    )}
+                    {recovery_questions && recovery_questions.length > 0 && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] text-zinc-500">
+                        <HelpCircle className="w-2.5 h-2.5" />
+                        {recovery_questions.length} Q&A
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
@@ -363,7 +416,14 @@ export default function PasswordCard({
 
               <div className="flex items-center gap-1">
                 <button
-                  onClick={() => setEditing(true)}
+                  onClick={() => {
+                    setEditUser(username);
+                    setEditPwd(password);
+                    setEditFolder(folder || "");
+                    setEditNotes(notes || "");
+                    setEditRecoveryQuestions(recovery_questions || []);
+                    setEditing(true);
+                  }}
                   className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-colors duration-150"
                   title="Edit"
                 >

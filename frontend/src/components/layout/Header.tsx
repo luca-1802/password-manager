@@ -2,13 +2,13 @@ import { Lock, Settings } from "lucide-react";
 import Button from "../ui/Button";
 
 interface Props {
-  passwordCount: number;
+  entryCount: number;
   onSettings: () => void;
   onLock: () => void;
 }
 
 export default function Header({
-  passwordCount,
+  entryCount,
   onSettings,
   onLock,
 }: Props) {
@@ -17,9 +17,9 @@ export default function Header({
       <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="font-mono text-sm font-medium text-zinc-300 tracking-wider">vault</span>
-          {passwordCount > 0 && (
+          {entryCount > 0 && (
             <span className="text-xs text-zinc-500 bg-zinc-800 px-1.5 py-0.5 rounded font-mono">
-              {passwordCount}
+              {entryCount}
             </span>
           )}
         </div>

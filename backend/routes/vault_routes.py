@@ -17,6 +17,11 @@ MAX_FOLDER_NAME_LENGTH = 50
 MAX_FOLDERS = 50
 MAX_TOTAL_ENTRIES = 10000
 MAX_ENTRIES_PER_SITE = 100
+MAX_NOTES_FIELD_LENGTH = 10000
+MAX_NOTE_CONTENT_LENGTH = 50000
+MAX_RECOVERY_QUESTIONS = 10
+MAX_RECOVERY_Q_LENGTH = 500
+MAX_NOTES_PER_TITLE = 100
 
 def require_auth(f):
     @wraps(f)
@@ -26,7 +31,7 @@ def require_auth(f):
         return f(*args, **kwargs)
     return decorated
 
-RESERVED_KEYS = {"_folders_meta"}
+RESERVED_KEYS = {"_folders_meta", "_notes"}
 
 def validate_website(website):
     if not website or len(website) > MAX_WEBSITE_LENGTH:
@@ -51,12 +56,51 @@ def validate_folder(folder):
         return "Folder name contains invalid characters"
     return None
 
+def validate_notes_field(notes):
+    if notes is None:
+        return None
+    if not isinstance(notes, str):
+        return "Notes must be a string"
+    if len(notes) > MAX_NOTES_FIELD_LENGTH:
+        return f"Notes must be at most {MAX_NOTES_FIELD_LENGTH} characters"
+    return None
+
+def validate_recovery_questions(questions):
+    if questions is None:
+        return None
+    if not isinstance(questions, list):
+        return "Recovery questions must be an array"
+    if len(questions) > MAX_RECOVERY_QUESTIONS:
+        return f"Maximum of {MAX_RECOVERY_QUESTIONS} recovery questions"
+    sanitized = []
+    for i, q in enumerate(questions):
+        if not isinstance(q, dict):
+            return f"Recovery question {i+1} must be an object"
+        if not q.get("question") or not isinstance(q["question"], str):
+            return f"Recovery question {i+1} must have a question string"
+        if not q.get("answer") or not isinstance(q["answer"], str):
+            return f"Recovery question {i+1} must have an answer string"
+        if len(q["question"]) > MAX_RECOVERY_Q_LENGTH:
+            return f"Recovery question {i+1} question is too long (max {MAX_RECOVERY_Q_LENGTH})"
+        if len(q["answer"]) > MAX_RECOVERY_Q_LENGTH:
+            return f"Recovery question {i+1} answer is too long (max {MAX_RECOVERY_Q_LENGTH})"
+        sanitized.append({"question": q["question"], "answer": q["answer"]})
+    questions[:] = sanitized
+    return None
+
 def count_existing_folders(passwords):
     folders = set()
     for key, entries in passwords.items():
         if key == "_folders_meta":
             if isinstance(entries, list):
                 folders.update(entries)
+            continue
+        if key == "_notes":
+            if isinstance(entries, dict):
+                for title, note_entries in entries.items():
+                    for entry in (note_entries if isinstance(note_entries, list) else [note_entries]):
+                        if isinstance(entry, dict) and entry.get("folder"):
+                            folders.add(entry["folder"])
             continue
         for entry in (entries if isinstance(entries, list) else [entries]):
             if entry.get("folder"):
@@ -87,9 +131,10 @@ def get_all():
     _, _, passwords = get_vault_data()
     if passwords is None:
         return jsonify({"error": "Failed to decrypt vault. Please log in again."}), 500
-    filtered = {k: v for k, v in passwords.items() if k != "_folders_meta"}
+    notes_data = passwords.get("_notes", {})
+    filtered = {k: v for k, v in passwords.items() if k not in RESERVED_KEYS}
     all_folders = sorted(count_existing_folders(passwords))
-    return jsonify({"passwords": filtered, "folders": all_folders})
+    return jsonify({"passwords": filtered, "notes": notes_data, "folders": all_folders})
 
 @vault_bp.route("/", methods=["POST"])
 @require_auth
@@ -121,6 +166,16 @@ def add_entry():
     if folder_err:
         return jsonify({"error": folder_err}), 400
 
+    notes = data.get("notes")
+    notes_err = validate_notes_field(notes)
+    if notes_err:
+        return jsonify({"error": notes_err}), 400
+
+    recovery_questions = data.get("recovery_questions")
+    rq_err = validate_recovery_questions(recovery_questions)
+    if rq_err:
+        return jsonify({"error": rq_err}), 400
+
     try:
         key_raw, salt, vault_path = get_session_material()
     except Exception as e:
@@ -131,7 +186,16 @@ def add_entry():
         with FileLock(vault_path + ".lock"):
             passwords = load_passwords_with_key(key_raw, vault_path)
 
-            total_entries = sum(len(v) if isinstance(v, list) else 1 for v in passwords.values())
+            total_entries = sum(
+                len(v) if isinstance(v, list) else 1
+                for k, v in passwords.items() if k not in RESERVED_KEYS
+            )
+            notes_data = passwords.get("_notes", {})
+            if isinstance(notes_data, dict):
+                total_entries += sum(
+                    len(v) if isinstance(v, list) else 1
+                    for v in notes_data.values()
+                )
             if total_entries >= MAX_TOTAL_ENTRIES:
                 return jsonify({"error": "Vault entry limit reached"}), 400
 
@@ -149,6 +213,10 @@ def add_entry():
             entry = {"username": username, "password": password}
             if folder:
                 entry["folder"] = folder
+            if notes:
+                entry["notes"] = notes
+            if recovery_questions:
+                entry["recovery_questions"] = recovery_questions
             passwords[website].append(entry)
             save_vault(key_raw, salt, vault_path, passwords)
     except Exception as e:
@@ -256,6 +324,26 @@ def edit_entry(website, index):
                     entries[index]["folder"] = folder
                 else:
                     entries[index].pop("folder", None)
+
+            if "notes" in data:
+                notes = data["notes"]
+                notes_err = validate_notes_field(notes)
+                if notes_err:
+                    return jsonify({"error": notes_err}), 400
+                if notes:
+                    entries[index]["notes"] = notes
+                else:
+                    entries[index].pop("notes", None)
+
+            if "recovery_questions" in data:
+                rq = data["recovery_questions"]
+                rq_err = validate_recovery_questions(rq)
+                if rq_err:
+                    return jsonify({"error": rq_err}), 400
+                if rq:
+                    entries[index]["recovery_questions"] = rq
+                else:
+                    entries[index].pop("recovery_questions", None)
 
             passwords[website] = entries
             save_vault(key_raw, salt, vault_path, passwords)

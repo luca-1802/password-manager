@@ -103,7 +103,7 @@ def rename_folder(name):
             passwords = load_passwords_with_key(key_raw, vault_path)
             changed = False
             for website in list(passwords.keys()):
-                if website == "_folders_meta":
+                if website in ("_folders_meta", "_notes"):
                     continue
                 entries = normalize_entries(passwords[website])
                 for entry in entries:
@@ -111,6 +111,19 @@ def rename_folder(name):
                         entry["folder"] = new_name
                         changed = True
                 passwords[website] = entries
+
+            # Also rename folder in standalone notes
+            notes_data = passwords.get("_notes", {})
+            if isinstance(notes_data, dict):
+                for title in list(notes_data.keys()):
+                    note_entries = normalize_entries(notes_data[title])
+                    for entry in note_entries:
+                        if entry.get("folder") == name:
+                            entry["folder"] = new_name
+                            changed = True
+                    notes_data[title] = note_entries
+                if notes_data:
+                    passwords["_notes"] = notes_data
 
             meta = passwords.get("_folders_meta", [])
             if isinstance(meta, list) and name in meta:
@@ -142,7 +155,7 @@ def delete_folder(name):
             passwords = load_passwords_with_key(key_raw, vault_path)
             changed = False
             for website in list(passwords.keys()):
-                if website == "_folders_meta":
+                if website in ("_folders_meta", "_notes"):
                     continue
                 entries = normalize_entries(passwords[website])
                 for entry in entries:
@@ -150,6 +163,19 @@ def delete_folder(name):
                         del entry["folder"]
                         changed = True
                 passwords[website] = entries
+
+            # Also remove folder from standalone notes
+            notes_data = passwords.get("_notes", {})
+            if isinstance(notes_data, dict):
+                for title in list(notes_data.keys()):
+                    note_entries = normalize_entries(notes_data[title])
+                    for entry in note_entries:
+                        if entry.get("folder") == name:
+                            del entry["folder"]
+                            changed = True
+                    notes_data[title] = note_entries
+                if notes_data:
+                    passwords["_notes"] = notes_data
 
             meta = passwords.get("_folders_meta", [])
             if isinstance(meta, list) and name in meta:

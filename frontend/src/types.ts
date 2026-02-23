@@ -1,10 +1,26 @@
+export interface RecoveryQuestion {
+  question: string;
+  answer: string;
+}
+
 export interface Credential {
   username: string;
   password: string;
   folder?: string | null;
+  notes?: string | null;
+  recovery_questions?: RecoveryQuestion[] | null;
 }
 
 export type PasswordMap = Record<string, Credential[]>;
+
+export interface SecureNote {
+  type: "note";
+  content: string;
+  folder?: string | null;
+  recovery_questions?: RecoveryQuestion[] | null;
+}
+
+export type NotesMap = Record<string, SecureNote[]>;
 
 export type ExportFormat = "json" | "csv" | "encrypted";
 

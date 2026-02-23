@@ -94,7 +94,7 @@ export default function ExportModal({ open, onClose, folders }: Props) {
   };
 
   return (
-    <Modal open={open} onClose={handleClose} title="Export Passwords">
+    <Modal open={open} onClose={handleClose} title="Export Vault">
       <div className="space-y-5">
         <div>
           <label className="block text-sm font-medium text-zinc-400 mb-2">
@@ -120,7 +120,7 @@ export default function ExportModal({ open, onClose, folders }: Props) {
 
         {format !== "encrypted" && (
           <p className="text-xs text-amber-500/80">
-            Unencrypted exports contain plaintext passwords
+            Unencrypted exports contain plaintext passwords and notes
           </p>
         )}
 
@@ -160,7 +160,7 @@ export default function ExportModal({ open, onClose, folders }: Props) {
                 onChange={() => setExportAll(true)}
                 className="accent-orange-500"
               />
-              Export all passwords
+              Export all entries
             </label>
             <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
               <input
@@ -200,7 +200,7 @@ export default function ExportModal({ open, onClose, folders }: Props) {
                 onChange={() => setIncludeUnfiled(!includeUnfiled)}
                 className="accent-orange-500"
               />
-              Unfiled passwords
+              Unfiled entries
             </label>
           </div>
         )}
