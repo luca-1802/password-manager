@@ -7,6 +7,7 @@ import { useToast } from "../ui/Toast";
 import { useClipboard } from "../../hooks/useClipboard";
 import { cn } from "../../lib/utils";
 import ColoredPassword from "../ui/ColoredPassword";
+import PasswordStrengthIndicator from "../ui/PasswordStrengthIndicator";
 
 interface Props {
   open: boolean;
@@ -106,6 +107,7 @@ export default function GeneratePasswordModal({ open, onClose }: Props) {
             <code className="block text-sm font-mono break-all leading-relaxed">
               <ColoredPassword password={password} />
             </code>
+            <PasswordStrengthIndicator password={password} className="mt-2" />
             <div className="flex justify-end mt-3">
               <Button
                 variant="ghost"

@@ -18,6 +18,7 @@ import { cn, getLetterColor } from "../../lib/utils";
 import { useToast } from "../ui/Toast";
 import { useClipboard } from "../../hooks/useClipboard";
 import ColoredPassword from "../ui/ColoredPassword";
+import PasswordStrengthIndicator from "../ui/PasswordStrengthIndicator";
 
 interface Props {
   website: string;
@@ -178,12 +179,20 @@ export default function PasswordCard({
                 />
               </div>
               <div className="relative">
+                {showEditPwd && editPwd && (
+                  <div className="pointer-events-none absolute inset-0 flex items-center pl-3.5 pr-10 text-sm font-mono overflow-hidden whitespace-nowrap">
+                    <ColoredPassword password={editPwd} />
+                  </div>
+                )}
                 <input
                   type={showEditPwd ? "text" : "password"}
                   value={editPwd}
                   onChange={(e) => setEditPwd(e.target.value)}
                   placeholder="Password"
-                  className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg pl-3.5 pr-10 py-2.5 text-sm font-mono text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150"
+                  className={cn(
+                    "w-full bg-zinc-900/80 border border-zinc-800 rounded-lg pl-3.5 pr-10 py-2.5 text-sm font-mono placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150",
+                    showEditPwd && editPwd ? "text-transparent caret-zinc-100" : "text-zinc-100"
+                  )}
                 />
                 <button
                   type="button"
@@ -198,6 +207,7 @@ export default function PasswordCard({
                   )}
                 </button>
               </div>
+              <PasswordStrengthIndicator password={editPwd} className="-mt-0.5" />
               <div className="relative">
                 <FolderOpen className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
                 <select
