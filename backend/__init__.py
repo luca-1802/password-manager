@@ -29,7 +29,7 @@ def create_app():
 
     @app.before_request
     def check_session_timeout():
-        if session.get("authenticated"):
+        if session.get("authenticated") or session.get("pending_2fa"):
             last_active = session.get("last_active", 0)
             if time.time() - last_active > app.config["INACTIVITY_TIMEOUT"]:
                 session.clear()
@@ -77,9 +77,11 @@ def create_app():
     from backend.routes.auth_routes import auth_bp
     from backend.routes.vault_routes import vault_bp
     from backend.routes.util_routes import util_bp
+    from backend.routes.totp_routes import totp_bp
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(vault_bp, url_prefix="/api/passwords")
     app.register_blueprint(util_bp, url_prefix="/api")
+    app.register_blueprint(totp_bp, url_prefix="/api/auth/2fa")
 
     @app.route("/", defaults={"path": ""})
     @app.route("/<path:path>")

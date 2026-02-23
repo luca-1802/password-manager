@@ -23,9 +23,11 @@ export default function AddPasswordModal({ open, onClose, onSaved }: Props) {
   const { copy } = useClipboard();
 
   const handleGenerate = async () => {
-    const res = await apiFetch<{ password: string }>("/generate?length=16");
+    const res = await apiFetch<{ password: string }>("/generate?length=19");
     if (res?.ok) {
       setPassword(res.data.password);
+    } else {
+      toast("error", "Failed to generate password");
     }
   };
 
@@ -106,7 +108,7 @@ export default function AddPasswordModal({ open, onClose, onSaved }: Props) {
             size="md"
             onClick={handleGenerate}
             icon={<Wand2 className="w-4 h-4" />}
-            className="shrink-0"
+            className="shrink-0 py-2.5"
           />
         </div>
 

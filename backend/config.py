@@ -59,7 +59,11 @@ class Config:
     SESSION_COOKIE_SECURE = os.environ.get("FLASK_ENV") == "production" or os.environ.get("FLASK_ENV") is None
     PERMANENT_SESSION_LIFETIME = 300
     VAULT_FILE = os.path.join(_DATA_DIR, "vault.enc")
+    TOTP_FILE = os.path.join(_DATA_DIR, ".totp.enc")
     LOCKOUT_FILE = os.path.join(_DATA_DIR, ".vault.lock")
+    TOTP_LOCKOUT_FILE = os.path.join(_DATA_DIR, ".totp_lockout.json")
+    TOTP_USED_CODES_FILE = os.path.join(_DATA_DIR, ".totp_used_codes.json")
     MAX_LOGIN_ATTEMPTS = 3
+    MAX_2FA_ATTEMPTS = 5
     MIN_MASTER_PWD_LENGTH = 12
     INACTIVITY_TIMEOUT = 300

@@ -4,7 +4,7 @@ import time
 import logging
 from flask import Blueprint, request, jsonify, session, current_app
 from cryptography.fernet import Fernet
-from backend.vault import generate_key, load_passwords, save_passwords_with_key, check_lockout, record_failed_attempt, clear_lockout, SALT_SIZE
+from backend.vault import generate_key, load_passwords, save_passwords_with_key, check_lockout, record_failed_attempt, clear_lockout, has_totp, SALT_SIZE
 from backend.config import get_session_encryption_key
 
 logger = logging.getLogger(__name__)
@@ -32,9 +32,12 @@ def validate_master_password(pwd, min_length):
 @auth_bp.route("/status", methods=["GET"])
 def status():
     vault_path = current_app.config["VAULT_FILE"]
+    totp_path = current_app.config["TOTP_FILE"]
     return jsonify({
         "authenticated": session.get("authenticated", False),
         "is_new_vault": not os.path.exists(vault_path),
+        "pending_2fa": session.get("pending_2fa", False),
+        "totp_enabled": has_totp(totp_path),
     })
 
 @auth_bp.route("/login", methods=["POST"])
@@ -46,6 +49,9 @@ def login():
     is_locked, remaining = check_lockout(lockout_path)
     if is_locked:
         return jsonify({"error": "Vault is locked", "locked_until": remaining}), 423
+
+    if not os.path.exists(vault_path):
+        return jsonify({"error": "Vault is not initialized. Create a vault first."}), 400
 
     data = request.get_json()
     if not data or not data.get("master_password"):
@@ -71,11 +77,17 @@ def login():
     del master_pwd
 
     session.clear()
-    session["authenticated"] = True
     session["fernet_key"] = _encrypt_session_value(fernet_key)
     session["salt"] = _encrypt_session_value(salt)
     session["last_active"] = time.time()
 
+    totp_path = current_app.config["TOTP_FILE"]
+    if has_totp(totp_path):
+        session["authenticated"] = False
+        session["pending_2fa"] = True
+        return jsonify({"requires_2fa": True})
+
+    session["authenticated"] = True
     return jsonify({"success": True})
 
 @auth_bp.route("/create", methods=["POST"])

@@ -1,5 +1,13 @@
 vault.enc
+vault.enc.lock
 .vault.lock
+.vault.lock.lock
+.totp.enc
+.totp.enc.lock
+.totp_lockout.json
+.totp_lockout.json.lock
+.totp_used_codes.json
+.totp_used_codes.json.lock
 .flask_sessions/
 .flask_secret_key
 frontend/node_modules/

@@ -115,7 +115,7 @@ def check_lockout(lockout_path):
         locked_until = data.get("locked_until", 0)
         if time.time() < locked_until:
             return True, int(locked_until - time.time())
-        # Lockout expired: reset cycle_attempts but preserve total_attempts
+        
         data["cycle_attempts"] = 0
         data["locked_until"] = 0
         try:
@@ -158,16 +158,73 @@ def record_failed_attempt(lockout_path, max_attempts=3):
         return cycle_attempts >= max_attempts, lockout_seconds
 
 def clear_lockout(lockout_path):
-    try:
-        if os.path.exists(lockout_path):
-            os.remove(lockout_path)
-    except OSError:
-        pass
+    lock = FileLock(lockout_path + ".lock")
+    with lock:
+        try:
+            if os.path.exists(lockout_path):
+                os.remove(lockout_path)
+        except OSError:
+            pass
 
 def normalize_entries(entries):
     if isinstance(entries, dict):
         return [entries]
     return entries
+
+def has_totp(totp_path):
+    return os.path.exists(totp_path)
+
+def generate_backup_codes(count=10, length=8):
+    alphabet = string.ascii_lowercase + string.digits
+    return [
+        "".join(secrets.choice(alphabet) for _ in range(length))
+        for _ in range(count)
+    ]
+
+def save_totp_data(fernet_key, salt, totp_data, totp_path):
+    encrypted = Fernet(fernet_key).encrypt(json.dumps(totp_data).encode())
+    tmp_path = totp_path + ".tmp"
+    try:
+        fd = os.open(tmp_path, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "wb") as f:
+            f.write(salt)
+            f.write(encrypted)
+        os.replace(tmp_path, totp_path)
+    except OSError as e:
+        logger.error("Could not write TOTP file: %s", e)
+        raise
+
+def load_totp_data(fernet_key, totp_path):
+    if not os.path.exists(totp_path):
+        return None
+    try:
+        with open(totp_path, "rb") as f:
+            f.read(SALT_SIZE)
+            encrypted_data = f.read()
+    except OSError as e:
+        logger.error("Could not read TOTP file: %s", e)
+        return None
+    try:
+        raw = Fernet(fernet_key).decrypt(encrypted_data).decode()
+    except InvalidToken:
+        logger.error("Failed to decrypt TOTP data (invalid key or corrupted)")
+        return None
+    try:
+        data = json.loads(raw)
+        if isinstance(data, dict) and "secret" in data:
+            return data
+    except (json.JSONDecodeError, ValueError):
+        pass
+    
+    return {"secret": raw, "backup_codes": []}
+
+def delete_totp_secret(totp_path):
+    try:
+        if os.path.exists(totp_path):
+            os.remove(totp_path)
+    except OSError as e:
+        logger.error("Could not delete TOTP file: %s", e)
+        raise
 
 def generate_password(length=19):
     if length < 4:
