@@ -8,7 +8,7 @@ import time
 import pyotp
 
 from backend.vault import (
-    generate_key,
+    derive_key,
     generate_password,
     load_passwords,
     save_passwords_with_key,
@@ -94,7 +94,7 @@ def run():
     check_lockout()
     is_new_vault = not os.path.exists(VAULT_FILE)
 
-    fernet_key = None
+    vault_key = None
     salt = None
     passwords = None
 
@@ -110,13 +110,12 @@ def run():
                 print("Passwords do not match.")
                 continue
 
-        salt, passwords = load_passwords(master_pwd, VAULT_FILE)
+        salt, passwords, vault_key = load_passwords(master_pwd, VAULT_FILE)
         if passwords is None:
             print("Invalid Password")
             if record_failed_attempt():
                 sys.exit(1)
             continue
-        fernet_key = generate_key(master_pwd, salt)
         break
     else:
         print("Too many failed attempts.")
@@ -125,7 +124,7 @@ def run():
     clear_lockout(LOCKOUT_FILE)
 
     if has_totp(TOTP_FILE):
-        totp_data = load_totp_data(fernet_key, TOTP_FILE)
+        totp_data = load_totp_data(vault_key, TOTP_FILE)
         if totp_data is None:
             print("Error: Could not decrypt 2FA configuration.")
             sys.exit(1)
@@ -139,7 +138,7 @@ def run():
                 if code.lower() in backup_codes:
                     backup_codes.remove(code.lower())
                     totp_data["backup_codes"] = backup_codes
-                    save_totp_data(fernet_key, salt, totp_data, TOTP_FILE)
+                    save_totp_data(vault_key, salt, totp_data, TOTP_FILE)
                     remaining = len(backup_codes)
                     print(f"Backup code accepted. ({remaining} remaining)")
                     break
@@ -179,7 +178,7 @@ def run():
                 "password": password
             })
 
-            save_passwords_with_key(fernet_key, salt, passwords, VAULT_FILE)
+            save_passwords_with_key(vault_key, salt, passwords, VAULT_FILE)
             print(f"Password saved for {website}!")
         elif choice == '2':
             website = timed_input("Website/App: ").lower()
@@ -213,7 +212,7 @@ def run():
             print(f"Generated password: {generate_password(length)}")
         elif choice == '4':
             if has_totp(TOTP_FILE):
-                totp_data = load_totp_data(fernet_key, TOTP_FILE)
+                totp_data = load_totp_data(vault_key, TOTP_FILE)
                 remaining = len(totp_data.get("backup_codes", [])) if totp_data else 0
                 print(f"\n2FA is currently ENABLED. ({remaining} backup codes remaining)")
                 print("1. Disable 2FA")
@@ -232,7 +231,7 @@ def run():
                     if totp_data and pyotp.TOTP(totp_data["secret"]).verify(code, valid_window=1):
                         new_codes = generate_backup_codes()
                         totp_data["backup_codes"] = new_codes
-                        save_totp_data(fernet_key, salt, totp_data, TOTP_FILE)
+                        save_totp_data(vault_key, salt, totp_data, TOTP_FILE)
                         print("\nNew backup codes:")
                         for i, c in enumerate(new_codes, 1):
                             print(f"  {i:2d}. {c}")
@@ -262,7 +261,7 @@ def run():
                     code = input("Enter the 6-digit code to verify: ").strip()
                     if pyotp.TOTP(secret).verify(code, valid_window=1):
                         backup_codes = generate_backup_codes()
-                        save_totp_data(fernet_key, salt, {
+                        save_totp_data(vault_key, salt, {
                             "secret": secret,
                             "backup_codes": backup_codes,
                         }, TOTP_FILE)

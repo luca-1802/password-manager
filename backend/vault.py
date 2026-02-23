@@ -1,11 +1,10 @@
 import os
-import base64
 import json
 import logging
 import string
 import secrets
 import time
-from cryptography.fernet import Fernet, InvalidToken
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from argon2.low_level import hash_secret_raw, Type
 from filelock import FileLock
 
@@ -15,12 +14,15 @@ class VaultDecryptionError(Exception):
     pass
 
 SALT_SIZE = 16
+NONCE_SIZE = 12
+VAULT_MAGIC = b"PV02"
+EXPORT_MAGIC = b"PX01"
 ARGON2_TIME_COST = 3
 ARGON2_MEMORY_COST = 65536
 ARGON2_PARALLELISM = 4
 
-def generate_key(master_pwd, salt):
-    key = hash_secret_raw(
+def derive_key(master_pwd, salt):
+    return hash_secret_raw(
         secret=master_pwd.encode(),
         salt=salt,
         time_cost=ARGON2_TIME_COST,
@@ -29,69 +31,86 @@ def generate_key(master_pwd, salt):
         hash_len=32,
         type=Type.ID,
     )
-    return base64.urlsafe_b64encode(key)
+
+def _aes_gcm_encrypt(key_raw, plaintext, aad):
+    nonce = os.urandom(NONCE_SIZE)
+    ct = AESGCM(key_raw).encrypt(nonce, plaintext, aad)
+    return nonce + ct
+
+def _aes_gcm_decrypt(key_raw, nonce_and_ct, aad):
+    nonce = nonce_and_ct[:NONCE_SIZE]
+    ct = nonce_and_ct[NONCE_SIZE:]
+    return AESGCM(key_raw).decrypt(nonce, ct, aad)
 
 def load_passwords(master_pwd, vault_path):
     if not os.path.exists(vault_path):
-        return os.urandom(SALT_SIZE), {}
+        salt = os.urandom(SALT_SIZE)
+        return salt, {}, derive_key(master_pwd, salt)
     try:
         with open(vault_path, "rb") as f:
-            salt = f.read(SALT_SIZE)
-            if len(salt) < SALT_SIZE:
-                logger.error("Vault file is corrupted (truncated salt)")
-                return None, None
-            encrypted_data = f.read()
-            if not encrypted_data:
-                logger.error("Vault file is corrupted (no encrypted data)")
-                return None, None
+            raw = f.read()
     except OSError as e:
         logger.error("Could not read vault file: %s", e)
-        return None, None
-    key = generate_key(master_pwd, salt)
+        return None, None, None
+
+    if len(raw) < SALT_SIZE + 1:
+        logger.error("Vault file is corrupted (too short)")
+        return None, None, None
+
+    if raw[:4] != VAULT_MAGIC:
+        logger.error("Vault file has unrecognized format")
+        return None, None, None
+
+    salt = raw[4:4 + SALT_SIZE]
+    nonce_and_ct = raw[4 + SALT_SIZE:]
+    if not nonce_and_ct:
+        logger.error("Vault file is corrupted (no encrypted data)")
+        return None, None, None
+    key_raw = derive_key(master_pwd, salt)
     try:
-        decrypted = Fernet(key).decrypt(encrypted_data)
+        decrypted = _aes_gcm_decrypt(key_raw, nonce_and_ct, VAULT_MAGIC)
         data = json.loads(decrypted.decode())
         if not isinstance(data, dict):
             logger.error("Vault data is not a valid password dictionary")
-            return None, None
-        return salt, data
-    except InvalidToken:
-        return None, None
-    except (json.JSONDecodeError, UnicodeDecodeError) as e:
-        logger.error("Vault data is corrupted: %s", e)
-        return None, None
+            return None, None, None
+        return salt, data, key_raw
+    except Exception:
+        return None, None, None
 
-def load_passwords_with_key(fernet_key, vault_path):
+def load_passwords_with_key(key_raw, vault_path):
     if not os.path.exists(vault_path):
         return {}
     try:
         with open(vault_path, "rb") as f:
-            f.read(SALT_SIZE)
-            encrypted_data = f.read()
+            raw = f.read()
     except OSError as e:
         logger.error("Could not read vault file: %s", e)
         return {}
+
+    nonce_and_ct = raw[4 + SALT_SIZE:]
     try:
-        data = json.loads(Fernet(fernet_key).decrypt(encrypted_data).decode())
+        decrypted = _aes_gcm_decrypt(key_raw, nonce_and_ct, VAULT_MAGIC)
+        data = json.loads(decrypted.decode())
         if not isinstance(data, dict):
             logger.error("Vault data is not a valid password dictionary")
             raise VaultDecryptionError("Vault data is not a valid password dictionary")
         return data
-    except InvalidToken:
+    except VaultDecryptionError:
+        raise
+    except Exception:
         logger.error("Failed to decrypt vault (invalid key or corrupted data)")
         raise VaultDecryptionError("Failed to decrypt vault (invalid key or corrupted data)")
-    except (json.JSONDecodeError, UnicodeDecodeError) as e:
-        logger.error("Vault data is corrupted: %s", e)
-        raise VaultDecryptionError(f"Vault data is corrupted: {e}")
 
-def save_passwords_with_key(fernet_key, salt, passwords_dict, vault_path):
-    encrypted = Fernet(fernet_key).encrypt(json.dumps(passwords_dict).encode())
+def save_passwords_with_key(key_raw, salt, passwords_dict, vault_path):
+    plaintext = json.dumps(passwords_dict).encode()
+    nonce_and_ct = _aes_gcm_encrypt(key_raw, plaintext, VAULT_MAGIC)
     tmp_path = vault_path + ".tmp"
     try:
         fd = os.open(tmp_path, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600)
         with os.fdopen(fd, "wb") as f:
+            f.write(VAULT_MAGIC)
             f.write(salt)
-            f.write(encrypted)
+            f.write(nonce_and_ct)
         os.replace(tmp_path, vault_path)
     except OSError as e:
         logger.error("Could not write vault file: %s", e)
@@ -115,7 +134,7 @@ def check_lockout(lockout_path):
         locked_until = data.get("locked_until", 0)
         if time.time() < locked_until:
             return True, int(locked_until - time.time())
-        
+
         data["cycle_attempts"] = 0
         data["locked_until"] = 0
         try:
@@ -181,42 +200,46 @@ def generate_backup_codes(count=10, length=8):
         for _ in range(count)
     ]
 
-def save_totp_data(fernet_key, salt, totp_data, totp_path):
-    encrypted = Fernet(fernet_key).encrypt(json.dumps(totp_data).encode())
+def save_totp_data(key_raw, salt, totp_data, totp_path):
+    plaintext = json.dumps(totp_data).encode()
+    nonce_and_ct = _aes_gcm_encrypt(key_raw, plaintext, VAULT_MAGIC)
     tmp_path = totp_path + ".tmp"
     try:
         fd = os.open(tmp_path, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600)
         with os.fdopen(fd, "wb") as f:
+            f.write(VAULT_MAGIC)
             f.write(salt)
-            f.write(encrypted)
+            f.write(nonce_and_ct)
         os.replace(tmp_path, totp_path)
     except OSError as e:
         logger.error("Could not write TOTP file: %s", e)
         raise
 
-def load_totp_data(fernet_key, totp_path):
+def load_totp_data(key_raw, totp_path):
     if not os.path.exists(totp_path):
         return None
     try:
         with open(totp_path, "rb") as f:
-            f.read(SALT_SIZE)
-            encrypted_data = f.read()
+            raw = f.read()
     except OSError as e:
         logger.error("Could not read TOTP file: %s", e)
         return None
+
+    nonce_and_ct = raw[4 + SALT_SIZE:]
     try:
-        raw = Fernet(fernet_key).decrypt(encrypted_data).decode()
-    except InvalidToken:
+        decrypted = _aes_gcm_decrypt(key_raw, nonce_and_ct, VAULT_MAGIC).decode()
+    except Exception:
         logger.error("Failed to decrypt TOTP data (invalid key or corrupted)")
         return None
+
     try:
-        data = json.loads(raw)
+        data = json.loads(decrypted)
         if isinstance(data, dict) and "secret" in data:
             return data
     except (json.JSONDecodeError, ValueError):
         pass
-    
-    return {"secret": raw, "backup_codes": []}
+
+    return {"secret": decrypted, "backup_codes": []}
 
 def delete_totp_secret(totp_path):
     try:
@@ -225,6 +248,25 @@ def delete_totp_secret(totp_path):
     except OSError as e:
         logger.error("Could not delete TOTP file: %s", e)
         raise
+
+def encrypt_export(password, plaintext_bytes):
+    salt = os.urandom(SALT_SIZE)
+    key_raw = derive_key(password, salt)
+    nonce_and_ct = _aes_gcm_encrypt(key_raw, plaintext_bytes, EXPORT_MAGIC)
+    return EXPORT_MAGIC + salt + nonce_and_ct
+
+def decrypt_export(password, file_data):
+    if len(file_data) < 4 + SALT_SIZE + NONCE_SIZE + 16:
+        raise VaultDecryptionError("File is too short or corrupted")
+    if file_data[:4] != EXPORT_MAGIC:
+        raise VaultDecryptionError("Invalid encrypted export file")
+    salt = file_data[4:4 + SALT_SIZE]
+    nonce_and_ct = file_data[4 + SALT_SIZE:]
+    key_raw = derive_key(password, salt)
+    try:
+        return _aes_gcm_decrypt(key_raw, nonce_and_ct, EXPORT_MAGIC)
+    except Exception:
+        raise VaultDecryptionError("Wrong password or corrupted file")
 
 def generate_password(length=19):
     if length < 4:

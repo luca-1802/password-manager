@@ -1,29 +1,63 @@
-import { useState, useEffect } from "react";
-import { apiFetch } from "../api";
-import type { TotpStatusResponse } from "../types";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  TouchSensor,
+  pointerWithin,
+  useSensor,
+  useSensors,
+  type DragStartEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { Plus, Wand2 } from "lucide-react";
+import type { Credential } from "../types";
 import { usePasswords } from "../hooks/usePasswords";
+import { useFolders } from "../hooks/useFolders";
 import { useInactivityTimeout } from "../hooks/useInactivityTimeout";
+import { useToast } from "../components/ui/Toast";
 import Header from "../components/layout/Header";
 import SearchBar from "../components/vault/SearchBar";
+import FolderBar, { type FolderFilter } from "../components/vault/FolderBar";
 import PasswordGrid from "../components/vault/PasswordGrid";
 import AddPasswordModal from "../components/vault/AddPasswordModal";
 import GeneratePasswordModal from "../components/vault/GeneratePasswordModal";
-import TwoFactorSetupModal from "../components/vault/TwoFactorSetupModal";
 
 interface Props {
   onLogout: () => void;
 }
 
+interface DragData {
+  website: string;
+  index: number;
+  username: string;
+  password: string;
+  folder?: string | null;
+}
+
 export default function VaultPage({ onLogout }: Props) {
-  const { passwords, fetchPasswords, editPassword, deletePassword } =
+  const navigate = useNavigate();
+  const { passwords, serverFolders, fetchPasswords, editPassword, deletePassword } =
     usePasswords();
+  const { folders, createFolder, renameFolder, deleteFolder } =
+    useFolders(serverFolders);
   const [search, setSearch] = useState("");
+  const [folderFilter, setFolderFilter] = useState<FolderFilter>("all");
   const [showAdd, setShowAdd] = useState(false);
   const [showGenerate, setShowGenerate] = useState(false);
-  const [show2FA, setShow2FA] = useState(false);
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  const [backupCodesRemaining, setBackupCodesRemaining] = useState(0);
   const [page, setPage] = useState(1);
+  const [activeDrag, setActiveDrag] = useState<DragData | null>(null);
+  const { toast } = useToast();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 5 },
+    })
+  );
 
   useInactivityTimeout(onLogout);
 
@@ -32,75 +66,190 @@ export default function VaultPage({ onLogout }: Props) {
   }, [fetchPasswords]);
 
   useEffect(() => {
-    const check2FA = async () => {
-      const res = await apiFetch<TotpStatusResponse>("/auth/2fa/status");
-      if (res?.ok && res.data) {
-        setTwoFactorEnabled(res.data.enabled);
-        setBackupCodesRemaining(res.data.backup_codes_remaining ?? 0);
-      }
-    };
-    check2FA();
-  }, []);
-
-  useEffect(() => {
     setPage(1);
-  }, [search]);
+  }, [search, folderFilter]);
 
-  const filtered = Object.entries(passwords).filter(([site]) =>
-    site.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = Object.entries(passwords)
+    .map(([site, creds]) => {
+      const filteredCreds = creds.filter((c: Credential) => {
+        if (folderFilter === "unfiled") return !c.folder;
+        if (folderFilter !== "all") return c.folder === folderFilter;
+        return true;
+      });
+      return [site, filteredCreds] as [string, Credential[]];
+    })
+    .filter(([site, creds]) => {
+      if (creds.length === 0) return false;
+      return site.toLowerCase().includes(search.toLowerCase());
+    });
 
   const totalPasswords = Object.values(passwords).reduce(
     (acc, creds) => acc + creds.length,
     0
   );
 
+  const handleCreateFolder = useCallback(
+    async (name: string) => {
+      const res = await createFolder(name);
+      if (res?.ok) await fetchPasswords();
+      return res;
+    },
+    [createFolder, fetchPasswords]
+  );
+
+  const handleRenameFolder = useCallback(
+    async (oldName: string, newName: string) => {
+      const res = await renameFolder(oldName, newName);
+      if (res?.ok) await fetchPasswords();
+      return res;
+    },
+    [renameFolder, fetchPasswords]
+  );
+
+  const handleDeleteFolder = useCallback(
+    async (name: string) => {
+      const res = await deleteFolder(name);
+      if (res?.ok) await fetchPasswords();
+      return res;
+    },
+    [deleteFolder, fetchPasswords]
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const data = event.active.data.current as DragData | undefined;
+    if (data) setActiveDrag(data);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    setActiveDrag(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const data = active.data.current as DragData | undefined;
+    if (!data) return;
+
+    const targetId = over.id as string;
+    let targetFolder: string | null = null;
+
+    if (targetId === "folder-unfiled") {
+      targetFolder = null;
+    } else if (targetId === "folder-all") {
+      return;
+    } else if (targetId.startsWith("folder-")) {
+      targetFolder = targetId.replace("folder-", "");
+    } else {
+      return;
+    }
+
+    if ((data.folder || null) === targetFolder) return;
+
+    const res = await editPassword(
+      data.website,
+      data.index,
+      data.username,
+      data.password,
+      targetFolder
+    );
+    if (
+      res &&
+      typeof res === "object" &&
+      "ok" in res &&
+      (res as { ok: boolean }).ok
+    ) {
+      toast(
+        "success",
+        targetFolder
+          ? `Moved to "${targetFolder}"`
+          : "Moved to unfiled"
+      );
+    } else {
+      toast("error", "Failed to move password");
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-bg">
-      <Header
-        passwordCount={totalPasswords}
-        onAdd={() => setShowAdd(true)}
-        onGenerate={() => setShowGenerate(true)}
-        onLock={onLogout}
-        onTwoFactor={() => setShow2FA(true)}
-        twoFactorEnabled={twoFactorEnabled}
-      />
-
-      <main className="max-w-2xl mx-auto px-4 py-8">
-        <SearchBar value={search} onChange={setSearch} className="mb-6" />
-
-        <PasswordGrid
-          entries={filtered}
-          page={page}
-          setPage={setPage}
-          onEdit={editPassword}
-          onDelete={deletePassword}
-          onAdd={() => setShowAdd(true)}
+    <DndContext
+      sensors={sensors}
+      collisionDetection={pointerWithin}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="min-h-screen bg-bg">
+        <Header
+          passwordCount={totalPasswords}
+          onSettings={() => navigate("/settings")}
+          onLock={onLogout}
         />
-      </main>
 
-      <AddPasswordModal
-        open={showAdd}
-        onClose={() => setShowAdd(false)}
-        onSaved={() => {
-          setShowAdd(false);
-          fetchPasswords();
-        }}
-      />
+        <main className="max-w-2xl mx-auto px-4 py-8">
+          <SearchBar value={search} onChange={setSearch} className="mb-4" />
 
-      <GeneratePasswordModal
-        open={showGenerate}
-        onClose={() => setShowGenerate(false)}
-      />
+          <FolderBar
+            folders={folders}
+            activeFilter={folderFilter}
+            onFilterChange={setFolderFilter}
+            onCreate={handleCreateFolder}
+            onRename={handleRenameFolder}
+            onDelete={handleDeleteFolder}
+            className="mb-4"
+          />
 
-      <TwoFactorSetupModal
-        open={show2FA}
-        onClose={() => setShow2FA(false)}
-        enabled={twoFactorEnabled}
-        backupCodesRemaining={backupCodesRemaining}
-        onStatusChange={setTwoFactorEnabled}
-        onBackupCodesChange={setBackupCodesRemaining}
-      />
-    </div>
+          <div className="flex items-center gap-2 mb-6">
+            <button
+              onClick={() => setShowAdd(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add
+            </button>
+            <button
+              onClick={() => setShowGenerate(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors cursor-pointer"
+            >
+              <Wand2 className="w-3.5 h-3.5" />
+              Generate
+            </button>
+          </div>
+
+          <PasswordGrid
+            entries={filtered}
+            page={page}
+            setPage={setPage}
+            folders={folders}
+            onEdit={editPassword}
+            onDelete={deletePassword}
+            onAdd={() => setShowAdd(true)}
+          />
+        </main>
+
+        <AddPasswordModal
+          open={showAdd}
+          onClose={() => setShowAdd(false)}
+          onSaved={() => {
+            setShowAdd(false);
+            fetchPasswords();
+          }}
+          folders={folders}
+        />
+
+        <GeneratePasswordModal
+          open={showGenerate}
+          onClose={() => setShowGenerate(false)}
+        />
+      </div>
+
+      <DragOverlay>
+        {activeDrag && (
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-3 shadow-2xl opacity-90 max-w-xs">
+            <div className="text-sm font-semibold text-zinc-100">
+              {activeDrag.website}
+            </div>
+            <div className="text-xs text-zinc-500 mt-0.5">
+              {activeDrag.username}
+            </div>
+          </div>
+        )}
+      </DragOverlay>
+    </DndContext>
   );
 }

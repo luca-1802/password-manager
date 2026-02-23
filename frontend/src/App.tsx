@@ -5,6 +5,7 @@ import type { AuthStatus } from "./types";
 import { ToastProvider } from "./components/ui/Toast";
 import LoginPage from "./pages/LoginPage";
 import VaultPage from "./pages/VaultPage";
+import SettingsPage from "./pages/SettingsPage";
 
 function App() {
   const [authState, setAuthState] = useState<AuthStatus | null>(null);
@@ -63,6 +64,16 @@ function App() {
           element={
             authState.authenticated ? (
               <VaultPage onLogout={onLogout} />
+            ) : (
+              <Navigate to="/" />
+            )
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            authState.authenticated ? (
+              <SettingsPage onLogout={onLogout} />
             ) : (
               <Navigate to="/" />
             )

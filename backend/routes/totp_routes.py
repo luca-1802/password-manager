@@ -29,9 +29,9 @@ def _validate_code(data):
     return None, (jsonify({"error": "Code must be a 6-digit TOTP code or 8-character backup code"}), 400)
 
 def _get_session_keys():
-    fernet_key = _decrypt_session_value(session["fernet_key"])
+    key_raw = _decrypt_session_value(session["vault_key"])
     salt = _decrypt_session_value(session["salt"])
-    return fernet_key, salt
+    return key_raw, salt
 
 def _check_2fa_lockout():
     lockout_path = current_app.config["TOTP_LOCKOUT_FILE"]
@@ -88,8 +88,8 @@ def totp_status():
     backup_codes_remaining = 0
     if enabled:
         try:
-            fernet_key, _ = _get_session_keys()
-            totp_data = load_totp_data(fernet_key, totp_path)
+            key_raw, _ = _get_session_keys()
+            totp_data = load_totp_data(key_raw, totp_path)
             if totp_data:
                 backup_codes_remaining = len(totp_data.get("backup_codes", []))
         except Exception:
@@ -150,9 +150,9 @@ def totp_verify_setup():
 
     backup_codes = generate_backup_codes()
     try:
-        fernet_key, salt = _get_session_keys()
+        key_raw, salt = _get_session_keys()
         totp_path = current_app.config["TOTP_FILE"]
-        save_totp_data(fernet_key, salt, {
+        save_totp_data(key_raw, salt, {
             "secret": pending_secret,
             "backup_codes": backup_codes,
         }, totp_path)
@@ -177,14 +177,13 @@ def totp_verify_login():
         return err
 
     try:
-        fernet_key = _decrypt_session_value(session["fernet_key"])
-        salt = _decrypt_session_value(session["salt"])
+        key_raw, salt = _get_session_keys()
     except Exception:
         session.clear()
         return jsonify({"error": "Session expired"}), 401
 
     totp_path = current_app.config["TOTP_FILE"]
-    totp_data = load_totp_data(fernet_key, totp_path)
+    totp_data = load_totp_data(key_raw, totp_path)
     if not totp_data:
         session.clear()
         return jsonify({"error": "2FA configuration error"}), 500
@@ -202,7 +201,7 @@ def totp_verify_login():
         backup_valid = False
         totp_lock = FileLock(totp_path + ".lock")
         with totp_lock:
-            totp_data = load_totp_data(fernet_key, totp_path)
+            totp_data = load_totp_data(key_raw, totp_path)
             if not totp_data:
                 session.clear()
                 return jsonify({"error": "2FA configuration error"}), 500
@@ -212,7 +211,7 @@ def totp_verify_login():
                 backup_codes.remove(code_lower)
                 totp_data["backup_codes"] = backup_codes
                 try:
-                    save_totp_data(fernet_key, salt, totp_data, totp_path)
+                    save_totp_data(key_raw, salt, totp_data, totp_path)
                     backup_valid = True
                 except Exception as e:
                     logger.error("Failed to consume backup code: %s", e)
@@ -243,12 +242,12 @@ def totp_disable():
         return err
 
     try:
-        fernet_key, salt = _get_session_keys()
+        key_raw, salt = _get_session_keys()
     except Exception:
         return jsonify({"error": "Session error"}), 500
 
     totp_path = current_app.config["TOTP_FILE"]
-    totp_data = load_totp_data(fernet_key, totp_path)
+    totp_data = load_totp_data(key_raw, totp_path)
     if not totp_data:
         return jsonify({"error": "2FA is not enabled"}), 400
 
@@ -266,7 +265,7 @@ def totp_disable():
         verified = code.lower() in backup_codes
         if verified:
             totp_data["backup_codes"] = [c for c in backup_codes if c != code.lower()]
-            save_totp_data(fernet_key, salt, totp_data, totp_path)
+            save_totp_data(key_raw, salt, totp_data, totp_path)
 
     if not verified:
         locked, lockout_seconds = _record_2fa_failure()
@@ -297,12 +296,12 @@ def totp_regenerate_backup_codes():
         return err
 
     try:
-        fernet_key, salt = _get_session_keys()
+        key_raw, salt = _get_session_keys()
     except Exception:
         return jsonify({"error": "Session error"}), 500
 
     totp_path = current_app.config["TOTP_FILE"]
-    totp_data = load_totp_data(fernet_key, totp_path)
+    totp_data = load_totp_data(key_raw, totp_path)
     if not totp_data:
         return jsonify({"error": "2FA is not enabled"}), 400
 
@@ -320,7 +319,7 @@ def totp_regenerate_backup_codes():
     backup_codes = generate_backup_codes()
     totp_data["backup_codes"] = backup_codes
     try:
-        save_totp_data(fernet_key, salt, totp_data, totp_path)
+        save_totp_data(key_raw, salt, totp_data, totp_path)
     except Exception as e:
         logger.error("Failed to save backup codes: %s", e)
         return jsonify({"error": "Failed to regenerate backup codes"}), 500
