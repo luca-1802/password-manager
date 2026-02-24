@@ -12,10 +12,12 @@ import {
   ChevronRight,
   AlertTriangle,
   FolderOpen,
+  History,
+  Clock,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { getLetterColor } from "../../lib/utils";
-import type { VaultItem, RecoveryQuestion } from "../../types";
+import type { VaultItem, RecoveryQuestion, PasswordHistoryEntry } from "../../types";
 import { useClipboard } from "../../hooks/useClipboard";
 import ColoredPassword from "../ui/ColoredPassword";
 import PasswordStrengthIndicator from "../ui/PasswordStrengthIndicator";
@@ -97,6 +99,8 @@ export default function DetailPanel({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [notesExpanded, setNotesExpanded] = useState(false);
   const [recoveryExpanded, setRecoveryExpanded] = useState(false);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [historyPasswordVisible, setHistoryPasswordVisible] = useState<Set<number>>(new Set());
   const { copied, copy } = useClipboard();
   const [editUsername, setEditUsername] = useState("");
   const [editPassword, setEditPasswordVal] = useState("");
@@ -111,6 +115,8 @@ export default function DetailPanel({
     setConfirmDelete(false);
     setNotesExpanded(false);
     setRecoveryExpanded(false);
+    setHistoryExpanded(false);
+    setHistoryPasswordVisible(new Set());
   }, [item.id]);
 
   const startEditing = useCallback(() => {
@@ -169,6 +175,18 @@ export default function DetailPanel({
     }
     onClose();
   };
+
+  const toggleHistoryPassword = useCallback((idx: number) => {
+    setHistoryPasswordVisible((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) {
+        next.delete(idx);
+      } else {
+        next.add(idx);
+      }
+      return next;
+    });
+  }, []);
 
   const folderOptions = useMemo(() => [
     { value: "", label: "No folder" },
@@ -379,6 +397,64 @@ export default function DetailPanel({
             {notesExpanded && (
               <div className="bg-surface-sunken rounded-lg px-3 py-2 border border-border-subtle">
                 <p className="text-xs text-text-secondary whitespace-pre-wrap">{item.credential.notes}</p>
+              </div>
+            )}
+          </>
+        )}
+        {!editing && item.type === "password" && item.credential?.history && item.credential.history.length > 0 && (
+          <>
+            <button
+              onClick={() => setHistoryExpanded(!historyExpanded)}
+              className="flex items-center gap-1.5 text-xs font-medium text-text-muted hover:text-text-secondary transition-colors"
+            >
+              {historyExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+              <History className="w-3 h-3" />
+              Password History ({item.credential.history.length})
+            </button>
+            {historyExpanded && (
+              <div className="space-y-2 pl-4">
+                {[...item.credential.history].reverse().map((entry, i) => (
+                  <div
+                    key={i}
+                    className="bg-surface-sunken rounded-lg px-3 py-2 border border-border-subtle"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 font-mono text-xs">
+                        {historyPasswordVisible.has(i) ? (
+                          <span className="text-text-secondary break-all">{entry.password}</span>
+                        ) : (
+                          <span className="text-text-muted">{"*".repeat(12)}</span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => toggleHistoryPassword(i)}
+                        className="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors"
+                      >
+                        {historyPasswordVisible.has(i) ? (
+                          <EyeOff className="w-3 h-3" />
+                        ) : (
+                          <Eye className="w-3 h-3" />
+                        )}
+                      </button>
+                      <CopyButton
+                        onCopy={() => copy(entry.password)}
+                        isCopied={copied}
+                      />
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Clock className="w-3 h-3 text-text-muted" />
+                      <span className="text-[10px] text-text-muted">
+                        {new Date(entry.changed_at).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </>
