@@ -101,9 +101,15 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
   switch (message.type) {
     case "GET_AUTH_STATUS": {
       const token = await api.getToken();
-      if (!token) return { authenticated: false };
+      if (!token) {
+        const ping = await api.checkStatus();
+        return { authenticated: false, serverOnline: ping.status !== 0 };
+      }
       const res = await api.checkStatus();
-      return { authenticated: res.ok && res.data.authenticated };
+      if (res.ok && res.data.authenticated) {
+        return { authenticated: true, serverOnline: true };
+      }
+      return { authenticated: false, serverOnline: res.status !== 0 };
     }
 
     case "LOGIN": {

@@ -80,8 +80,13 @@ async function checkConnection(): Promise<boolean> {
       $statusText.textContent = "Connected";
       return true;
     }
-    $statusDot.className = "status-dot connected";
-    $statusText.textContent = "Server online";
+    if (res.serverOnline) {
+      $statusDot.className = "status-dot connected";
+      $statusText.textContent = "Server online";
+    } else {
+      $statusDot.className = "status-dot disconnected";
+      $statusText.textContent = "Disconnected";
+    }
     return false;
   } catch {
     $statusDot.className = "status-dot disconnected";
@@ -477,3 +482,6 @@ async function init(): Promise<void> {
 }
 
 init();
+
+// Re-check connection status every 15 seconds
+setInterval(checkConnection, 15000);
