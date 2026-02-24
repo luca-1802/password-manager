@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useDroppable } from "@dnd-kit/core";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   FolderOpen,
   Plus,
@@ -227,28 +228,36 @@ export default function FolderBar({
             >
               <MoreHorizontal className="w-3 h-3" />
             </button>
-            {contextFolder === folder && (
-              <div className="absolute top-full left-0 mt-1 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl z-20 py-1 min-w-[120px]">
-                <button
-                  onClick={() => handleStartRename(folder)}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+            <AnimatePresence>
+              {contextFolder === folder && (
+                <motion.div
+                  initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full left-0 mt-1 bg-zinc-900 border border-zinc-800 rounded-lg shadow-xl z-20 py-1 min-w-[120px]"
                 >
-                  <Pencil className="w-3 h-3" /> Rename
-                </button>
-                <button
-                  onClick={() => handleDelete(folder)}
-                  className={cn(
-                    "w-full flex items-center gap-2 px-3 py-1.5 text-xs",
-                    confirmDelete === folder
-                      ? "text-red-400 bg-red-500/10"
-                      : "text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                  )}
-                >
-                  <Trash2 className="w-3 h-3" />{" "}
-                  {confirmDelete === folder ? "Confirm" : "Delete"}
-                </button>
-              </div>
-            )}
+                  <button
+                    onClick={() => handleStartRename(folder)}
+                    className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
+                  >
+                    <Pencil className="w-3 h-3" /> Rename
+                  </button>
+                  <button
+                    onClick={() => handleDelete(folder)}
+                    className={cn(
+                      "w-full flex items-center gap-2 px-3 py-1.5 text-xs",
+                      confirmDelete === folder
+                        ? "text-red-400 bg-red-500/10"
+                        : "text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                    )}
+                  >
+                    <Trash2 className="w-3 h-3" />{" "}
+                    {confirmDelete === folder ? "Confirm" : "Delete"}
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         )
       )}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { RefreshCw, Copy, Check } from "lucide-react";
 import { apiFetch } from "../../api";
 import Modal from "../ui/Modal";
@@ -102,30 +103,39 @@ export default function GeneratePasswordModal({ open, onClose }: Props) {
           Generate
         </Button>
 
-        {password && (
-          <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4">
-            <code className="block text-sm font-mono break-all leading-relaxed">
-              <ColoredPassword password={password} />
-            </code>
-            <PasswordStrengthIndicator password={password} className="mt-2" />
-            <div className="flex justify-end mt-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCopy}
-                icon={
-                  copied ? (
-                    <Check className="w-3.5 h-3.5" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )
-                }
-              >
-                {copied ? "Copied!" : "Copy"}
-              </Button>
-            </div>
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {password && (
+            <motion.div
+              key={password}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ type: "spring", damping: 20, stiffness: 200 }}
+              className="bg-zinc-950 border border-zinc-800 rounded-lg p-4"
+            >
+              <code className="block text-sm font-mono break-all leading-relaxed">
+                <ColoredPassword password={password} />
+              </code>
+              <PasswordStrengthIndicator password={password} className="mt-2" />
+              <div className="flex justify-end mt-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopy}
+                  icon={
+                    copied ? (
+                      <Check className="w-3.5 h-3.5" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )
+                  }
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="flex justify-end">
           <Button variant="ghost" onClick={onClose}>

@@ -11,6 +11,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
+import { motion } from "framer-motion";
 import { Plus, Wand2, FileText, Upload, ShieldAlert, Loader2 } from "lucide-react";
 import type { Credential, SecureNote, SecureFile } from "../types";
 import { usePasswords } from "../hooks/usePasswords";
@@ -61,7 +62,7 @@ export default function VaultPage({ onLogout }: Props) {
   const [page, setPage] = useState(1);
   const [activeDrag, setActiveDrag] = useState<DragData | null>(null);
   const { toast } = useToast();
-  const { breachResults, checking, checkBreaches, clearBreachResults, getBreachCount } =
+  const { checking, checkBreaches, clearBreachResults, getBreachCount } =
     useBreachCheck();
 
   const sensors = useSensors(
@@ -259,7 +260,12 @@ export default function VaultPage({ onLogout }: Props) {
           onLock={onLogout}
         />
 
-        <main className="max-w-2xl mx-auto px-4 py-8">
+        <motion.main
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          className="max-w-2xl mx-auto px-4 py-8"
+        >
           <SearchBar value={search} onChange={setSearch} className="mb-4" />
 
           <FolderBar
@@ -274,22 +280,31 @@ export default function VaultPage({ onLogout }: Props) {
 
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <button
+              <motion.button
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.05 }}
                 onClick={() => setShowAdd(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-all cursor-pointer active:scale-[0.97] hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]"
               >
                 <Plus className="w-3.5 h-3.5" />
                 Add
-              </button>
-              <button
+              </motion.button>
+              <motion.button
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
                 onClick={() => setShowGenerate(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-all cursor-pointer active:scale-[0.97]"
               >
                 <Wand2 className="w-3.5 h-3.5" />
                 Generate
-              </button>
+              </motion.button>
             </div>
-            <button
+            <motion.button
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.15 }}
               onClick={async () => {
                 const res = await checkBreaches();
                 if (res?.ok) {
@@ -305,7 +320,7 @@ export default function VaultPage({ onLogout }: Props) {
                 }
               }}
               disabled={checking || totalPasswords === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none active:scale-[0.97]"
             >
               {checking ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -313,21 +328,27 @@ export default function VaultPage({ onLogout }: Props) {
                 <ShieldAlert className="w-3.5 h-3.5" />
               )}
               {checking ? "Checking…" : "Breach Check"}
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
               onClick={() => setShowAddNote(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-all cursor-pointer active:scale-[0.97]"
             >
               <FileText className="w-3.5 h-3.5" />
               Note
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.25 }}
               onClick={() => setShowAddFile(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-all cursor-pointer active:scale-[0.97]"
             >
               <Upload className="w-3.5 h-3.5" />
               File
-            </button>
+            </motion.button>
           </div>
 
           <PasswordGrid
@@ -347,7 +368,7 @@ export default function VaultPage({ onLogout }: Props) {
             onAdd={() => setShowAdd(true)}
             getBreachCount={getBreachCount}
           />
-        </main>
+        </motion.main>
 
         <AddPasswordModal
           open={showAdd}

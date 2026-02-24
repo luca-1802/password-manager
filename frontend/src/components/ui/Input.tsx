@@ -1,4 +1,5 @@
 import { forwardRef, useState, type InputHTMLAttributes, type ReactNode } from "react";
+import { motion } from "framer-motion";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "../../lib/utils";
 
@@ -45,11 +46,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             }}
             className={cn(
               "w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600",
-              "focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700",
-              "transition-colors duration-150",
+              "focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 focus:shadow-[0_0_0_3px_rgba(249,115,22,0.08)]",
+              "transition-all duration-150",
               icon && "pl-10",
               isPassword && "pr-10",
-              error && "border-red-600/50 focus:border-red-600/50 focus:ring-red-600/20",
+              error && "border-red-600/50 focus:border-red-600/50 focus:ring-red-600/20 focus:shadow-[0_0_0_3px_rgba(220,38,38,0.1)]",
               className
             )}
             {...props}
@@ -69,7 +70,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         {error && (
-          <p className="text-xs text-red-500 mt-1.5">{error}</p>
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-xs text-red-500 mt-1.5"
+          >
+            {error}
+          </motion.p>
         )}
       </div>
     );

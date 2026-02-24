@@ -39,6 +39,17 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease;
+  background-image: linear-gradient(
+    135deg,
+    #09090b 0%,
+    #0a0a0f 25%,
+    #09090b 50%,
+    #0b0a0d 75%,
+    #09090b 100%
+  );
+  background-size: 400% 400%;
+  animation: subtleGradient 15s ease infinite;
 }
 
 ::-webkit-scrollbar {
@@ -81,11 +92,14 @@ input[type="range"]::-webkit-slider-thumb {
   background: var(--color-accent);
   cursor: pointer;
   border: none;
-  box-shadow: none;
+  box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
+  transition: background 0.2s ease, box-shadow 0.3s ease, transform 0.2s ease;
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
   background: var(--color-accent-hover);
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.5), 0 0 20px rgba(249, 115, 22, 0.2);
+  transform: scale(1.15);
 }
 
 input[type="range"]::-moz-range-thumb {
@@ -95,9 +109,181 @@ input[type="range"]::-moz-range-thumb {
   background: var(--color-accent);
   cursor: pointer;
   border: none;
-  box-shadow: none;
+  box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
+  transition: background 0.2s ease, box-shadow 0.3s ease, transform 0.2s ease;
 }
 
 input[type="range"]::-moz-range-thumb:hover {
   background: var(--color-accent-hover);
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.5), 0 0 20px rgba(249, 115, 22, 0.2);
+  transform: scale(1.15);
+}
+
+/* ──────────────────────────────────────────────
+   Subtle noise texture overlay
+   ────────────────────────────────────────────── */
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* ──────────────────────────────────────────────
+   Enhanced focus ring styles
+   ────────────────────────────────────────────── */
+
+input:not([type="range"]):focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px rgba(249, 115, 22, 0.4), 0 0 12px rgba(249, 115, 22, 0.15);
+  border-color: var(--color-accent) !important;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* ──────────────────────────────────────────────
+   Keyframe animations
+   ────────────────────────────────────────────── */
+
+@keyframes subtleGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 4px rgba(249, 115, 22, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(249, 115, 22, 0.4), 0 0 32px rgba(249, 115, 22, 0.1);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 50%, 90% {
+    transform: translateX(-4px);
+  }
+  30%, 70% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* ──────────────────────────────────────────────
+   Utility classes for animations
+   ────────────────────────────────────────────── */
+
+@utility animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@utility animate-fadeInUp {
+  animation: fadeInUp 0.5s ease-out both;
+}
+
+@utility animate-fadeIn {
+  animation: fadeIn 0.3s ease-out both;
+}
+
+@utility animate-slideDown {
+  animation: slideDown 0.3s ease-out both;
+}
+
+@utility animate-scaleIn {
+  animation: scaleIn 0.2s ease-out both;
+}
+
+@utility animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@utility animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+@utility animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
 }

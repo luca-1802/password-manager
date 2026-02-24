@@ -1,4 +1,5 @@
 import { useMemo, useEffect } from "react";
+import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Credential, SecureNote, SecureFile, RecoveryQuestion } from "../../types";
 import PasswordCard from "./PasswordCard";
@@ -118,56 +119,65 @@ export default function PasswordGrid({
 
   return (
     <div>
-      <div className="border border-zinc-800 rounded-lg overflow-hidden divide-y divide-zinc-800/50">
-        {pageItems.map((item) =>
-          item.entryType === "file" && item.file ? (
-            <FileCard
-              key={`file-${item.key}-${item.index}`}
-              label={item.key}
-              index={item.index}
-              originalName={item.file.original_name}
-              size={item.file.size}
-              description={item.file.description}
-              folder={item.file.folder}
-              uploadedAt={item.file.uploaded_at}
-              folders={folders}
-              onEdit={onEditFile!}
-              onDelete={onDeleteFile!}
-              onDownload={onDownloadFile!}
-            />
-          ) : item.entryType === "note" && item.note ? (
-            <NoteCard
-              key={`note-${item.key}-${item.index}`}
-              title={item.key}
-              index={item.index}
-              content={item.note.content}
-              folder={item.note.folder}
-              recovery_questions={item.note.recovery_questions}
-              folders={folders}
-              onEdit={onEditNote}
-              onDelete={onDeleteNote}
-            />
-          ) : (
-            <PasswordCard
-              key={`${item.key}-${item.index}`}
-              website={item.key}
-              index={item.index}
-              username={item.credential!.username}
-              password={item.credential!.password}
-              folder={item.credential!.folder}
-              notes={item.credential!.notes}
-              recovery_questions={item.credential!.recovery_questions}
-              folders={folders}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              breachCount={getBreachCount?.(item.key, item.index) ?? null}
-            />
-          )
-        )}
+      <div key={`page-${currentPage}`} className="border border-zinc-800 rounded-lg overflow-hidden divide-y divide-zinc-800/50">
+        {pageItems.map((item, i) => (
+          <motion.div
+            key={`${item.entryType}-${item.key}-${item.index}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: i * 0.03 }}
+          >
+            {item.entryType === "file" && item.file ? (
+              <FileCard
+                label={item.key}
+                index={item.index}
+                originalName={item.file.original_name}
+                size={item.file.size}
+                description={item.file.description}
+                folder={item.file.folder}
+                uploadedAt={item.file.uploaded_at}
+                folders={folders}
+                onEdit={onEditFile!}
+                onDelete={onDeleteFile!}
+                onDownload={onDownloadFile!}
+              />
+            ) : item.entryType === "note" && item.note ? (
+              <NoteCard
+                title={item.key}
+                index={item.index}
+                content={item.note.content}
+                folder={item.note.folder}
+                recovery_questions={item.note.recovery_questions}
+                folders={folders}
+                onEdit={onEditNote}
+                onDelete={onDeleteNote}
+              />
+            ) : (
+              <PasswordCard
+                website={item.key}
+                index={item.index}
+                username={item.credential!.username}
+                password={item.credential!.password}
+                folder={item.credential!.folder}
+                notes={item.credential!.notes}
+                recovery_questions={item.credential!.recovery_questions}
+                folders={folders}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                breachCount={getBreachCount?.(item.key, item.index) ?? null}
+              />
+            )}
+          </motion.div>
+        ))}
       </div>
 
       {totalCredentials > PAGE_SIZE && (
-        <div className="flex items-center justify-between mt-4 px-1">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="flex items-center justify-between mt-4 px-1"
+        >
           <button
             onClick={() => setPage(currentPage - 1)}
             disabled={currentPage <= 1}
@@ -193,7 +203,7 @@ export default function PasswordGrid({
             Next
             <ChevronRight className="w-4 h-4" />
           </button>
-        </div>
+        </motion.div>
       )}
     </div>
   );

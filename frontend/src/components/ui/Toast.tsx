@@ -42,6 +42,12 @@ const borderMap: Record<ToastType, string> = {
   info: "border-blue-600/20",
 };
 
+const leftBorderMap: Record<ToastType, string> = {
+  success: "border-l-2 border-l-green-500",
+  error: "border-l-2 border-l-red-500",
+  info: "border-l-2 border-l-blue-500",
+};
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
@@ -66,11 +72,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <motion.div
               layout
               key={t.id}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20, transition: { duration: 0.1 } }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
-              className={`flex items-center gap-3 px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg shadow-lg max-w-sm ${borderMap[t.type]}`}
+              initial={{ opacity: 0, x: 40, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 40, scale: 0.9, transition: { duration: 0.15 } }}
+              transition={{ type: "spring", damping: 20, stiffness: 300 }}
+              className={`relative overflow-hidden flex items-center gap-3 px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg shadow-lg shadow-black/30 max-w-sm ${borderMap[t.type]} ${leftBorderMap[t.type]}`}
             >
               {iconMap[t.type]}
               <span className="text-sm text-zinc-300">{t.message}</span>
@@ -80,6 +86,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               >
                 <X className="w-4 h-4" />
               </button>
+              <motion.div
+                className="absolute bottom-0 left-0 h-0.5 bg-current opacity-20"
+                initial={{ width: "100%" }}
+                animate={{ width: "0%" }}
+                transition={{ duration: 4, ease: "linear" }}
+              />
             </motion.div>
           ))}
         </AnimatePresence>

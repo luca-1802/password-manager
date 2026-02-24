@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import { Lock } from "lucide-react";
 import { apiFetch } from "./api";
 import type { AuthStatus } from "./types";
 import { ToastProvider } from "./components/ui/Toast";
@@ -10,6 +12,7 @@ import SettingsPage from "./pages/SettingsPage";
 function App() {
   const [authState, setAuthState] = useState<AuthStatus | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -36,50 +39,73 @@ function App() {
 
   if (!authState) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-zinc-700 border-t-zinc-400 rounded-full animate-spin" />
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <motion.div
+          animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <Lock className="w-8 h-8 text-zinc-600" />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-xs text-zinc-600 font-mono tracking-wider"
+        >
+          vault
+        </motion.div>
       </div>
     );
   }
 
   return (
     <ToastProvider>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            authState.authenticated ? (
-              <Navigate to="/vault" />
-            ) : (
-              <LoginPage
-                isNewVault={authState.is_new_vault}
-                pendingTwoFa={authState.pending_2fa}
-                onLogin={onLogin}
-              />
-            )
-          }
-        />
-        <Route
-          path="/vault"
-          element={
-            authState.authenticated ? (
-              <VaultPage onLogout={onLogout} />
-            ) : (
-              <Navigate to="/" />
-            )
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            authState.authenticated ? (
-              <SettingsPage onLogout={onLogout} />
-            ) : (
-              <Navigate to="/" />
-            )
-          }
-        />
-      </Routes>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={location.pathname}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <Routes location={location}>
+            <Route
+              path="/"
+              element={
+                authState.authenticated ? (
+                  <Navigate to="/vault" />
+                ) : (
+                  <LoginPage
+                    isNewVault={authState.is_new_vault}
+                    pendingTwoFa={authState.pending_2fa}
+                    onLogin={onLogin}
+                  />
+                )
+              }
+            />
+            <Route
+              path="/vault"
+              element={
+                authState.authenticated ? (
+                  <VaultPage onLogout={onLogout} />
+                ) : (
+                  <Navigate to="/" />
+                )
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                authState.authenticated ? (
+                  <SettingsPage onLogout={onLogout} />
+                ) : (
+                  <Navigate to="/" />
+                )
+              }
+            />
+          </Routes>
+        </motion.div>
+      </AnimatePresence>
     </ToastProvider>
   );
 }

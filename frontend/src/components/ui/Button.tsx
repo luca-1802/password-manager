@@ -9,12 +9,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants = {
-  primary: "bg-orange-500 hover:bg-orange-600 text-white",
+  primary:
+    "bg-orange-500 hover:bg-orange-600 text-white hover:shadow-[0_0_20px_rgba(249,115,22,0.3)]",
   secondary:
     "bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700",
   ghost: "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50",
   danger:
-    "bg-red-600/10 text-red-500 hover:bg-red-600/20 border border-red-600/20",
+    "bg-red-600/10 text-red-500 hover:bg-red-600/20 border border-red-600/20 hover:shadow-[0_0_15px_rgba(220,38,38,0.2)]",
 };
 
 const sizes = {
@@ -41,7 +42,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center gap-2 font-medium rounded-lg cursor-pointer transition-colors duration-150",
+          "inline-flex items-center justify-center gap-2 font-medium rounded-lg cursor-pointer transition-all duration-150 active:scale-[0.97]",
           "disabled:opacity-50 disabled:cursor-not-allowed",
           variants[variant],
           sizes[size],

@@ -135,16 +135,16 @@ export default function FileCard({
   });
 
   return (
-    <div className="group" ref={setNodeRef} style={style}>
+    <div className="group transition-all duration-150" ref={setNodeRef} style={style}>
       <AnimatePresence mode="wait">
         {editing ? (
           <motion.div
             key="editing"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.1 }}
-            className="px-5 py-4 bg-zinc-800/10"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="px-5 py-4 bg-zinc-800/10 overflow-hidden"
           >
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -220,7 +220,7 @@ export default function FileCard({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.1 }}
           >
-            <div className="flex items-center gap-4 px-5 py-3.5 hover:bg-zinc-800/30 transition-colors duration-150">
+            <div className="flex items-center gap-4 px-5 py-3.5 hover:bg-zinc-800/40 transition-all duration-150 hover:shadow-[0_0_15px_rgba(0,0,0,0.2)]">
               <div
                 {...listeners}
                 {...attributes}
@@ -232,7 +232,7 @@ export default function FileCard({
                 <GripVertical className="w-4 h-4" />
               </div>
 
-              <div className="relative w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ring-1 ring-white/[0.06] bg-indigo-500/10">
+              <div className="relative w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ring-1 ring-white/[0.06] bg-indigo-500/10 group-hover:scale-110 transition-transform duration-200">
                 <File className="w-4 h-4 text-indigo-400" />
               </div>
 
@@ -295,8 +295,10 @@ export default function FileCard({
                 >
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
-                <button
+                <motion.button
                   onClick={handleDelete}
+                  animate={confirmDelete ? { scale: [1, 1.15, 1] } : { scale: 1 }}
+                  transition={confirmDelete ? { duration: 0.6, repeat: Infinity } : { duration: 0.15 }}
                   className={cn(
                     "p-1.5 rounded-lg transition-all duration-150",
                     confirmDelete
@@ -306,7 +308,7 @@ export default function FileCard({
                   title={confirmDelete ? "Click again to confirm" : "Delete"}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                </motion.button>
               </div>
             </div>
           </motion.div>

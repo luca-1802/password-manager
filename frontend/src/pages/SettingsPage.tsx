@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { ArrowLeft, Lock, Shield, Monitor, Upload, Download, Palette, KeyRound } from "lucide-react";
 import { apiFetch } from "../api";
 import type { TotpStatusResponse } from "../types";
@@ -55,7 +56,12 @@ export default function SettingsPage({ onLogout }: Props) {
   return (
     <div className="min-h-screen bg-bg">
       <header className="sticky top-0 z-50 border-b border-zinc-800 bg-bg/95 backdrop-blur-sm">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
+        <motion.div
+          className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
           <button
             onClick={() => navigate("/vault")}
             className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
@@ -75,11 +81,15 @@ export default function SettingsPage({ onLogout }: Props) {
           >
             Lock
           </Button>
-        </div>
+        </motion.div>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-8 space-y-8">
-        <section>
+        <motion.section
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.4, ease: "easeOut" }}
+        >
           <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-3">
             Security
           </h2>
@@ -167,9 +177,13 @@ export default function SettingsPage({ onLogout }: Props) {
               </Button>
             </div>
           </div>
-        </section>
+        </motion.section>
 
-        <section>
+        <motion.section
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4, ease: "easeOut" }}
+        >
           <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-3">
             Appearance
           </h2>
@@ -207,9 +221,13 @@ export default function SettingsPage({ onLogout }: Props) {
               </button>
             </div>
           </div>
-        </section>
+        </motion.section>
 
-        <section>
+        <motion.section
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.4, ease: "easeOut" }}
+        >
           <h2 className="text-sm font-medium text-zinc-500 uppercase tracking-wider mb-3">
             Data
           </h2>
@@ -254,7 +272,7 @@ export default function SettingsPage({ onLogout }: Props) {
               </Button>
             </div>
           </div>
-        </section>
+        </motion.section>
       </main>
 
       <ExportModal
