@@ -26,7 +26,7 @@ def _parse_csv(text: str) -> tuple[list[dict], str | None]:
     if not reader.fieldnames:
         return [], "CSV file is empty or has no header row"
     fields = set(reader.fieldnames)
-    # Require at least website or title column
+    
     if "website" not in fields and "title" not in fields:
         return [], "CSV missing required column: website or title"
     rows = []
@@ -128,7 +128,7 @@ def _validate_entry(entry: dict) -> str | None:
             if rq_err:
                 return f"{rq_err} for note: {entry.get('title', '')}"
         return None
-    # existing password validation
+    
     website = entry["website"].lower()
     if not validate_website(website):
         return f"Invalid website: {entry['website']}"
@@ -225,7 +225,6 @@ def import_passwords():
             imported = 0
             skipped = 0
 
-            # Separate password entries and note entries
             password_rows = [r for r in rows if r.get("type") != "note"]
             note_rows = [r for r in rows if r.get("type") == "note"]
 
@@ -273,7 +272,6 @@ def import_passwords():
                 passwords[website].append(new_entry)
                 imported += 1
 
-            # Merge notes
             for entry in note_rows:
                 title = entry["title"].lower()
 
@@ -293,7 +291,6 @@ def import_passwords():
                     skipped += 1
                     continue
 
-                # Check duplicates
                 is_duplicate = any(
                     e.get("content") == entry["content"]
                     for e in passwords["_notes"][title]

@@ -20,7 +20,6 @@ file_bp = Blueprint("files", __name__)
 
 
 def _get_files_dir():
-    """Get the directory for encrypted file storage, creating it if needed."""
     vault_path = current_app.config["VAULT_FILE"]
     files_dir = os.path.join(os.path.dirname(vault_path), "files")
     if not os.path.exists(files_dir):
@@ -29,7 +28,6 @@ def _get_files_dir():
 
 
 def _count_total_files(passwords):
-    """Count all file entries in the vault."""
     files_data = passwords.get("_files", {})
     if not isinstance(files_data, dict):
         return 0
@@ -43,7 +41,6 @@ def _count_total_files(passwords):
 
 
 def _count_total_entries(passwords):
-    """Count all password entries, note entries, and file entries combined."""
     total = 0
     for key, value in passwords.items():
         if key == "_folders_meta":
@@ -146,7 +143,6 @@ def upload_file():
             files_dir = _get_files_dir()
             enc_path = os.path.join(files_dir, f"{file_id}.enc")
 
-            # Validate path to prevent traversal
             real_path = os.path.realpath(enc_path)
             real_dir = os.path.realpath(files_dir)
             if not real_path.startswith(real_dir + os.sep):
@@ -353,7 +349,6 @@ def delete_file(label, index):
             entry = entries[index]
             file_id = entry.get("file_id")
 
-            # Delete encrypted file from disk
             if file_id:
                 files_dir = _get_files_dir()
                 enc_path = os.path.join(files_dir, f"{file_id}.enc")

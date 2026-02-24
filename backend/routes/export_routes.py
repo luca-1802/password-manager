@@ -70,7 +70,6 @@ def export_passwords():
                 row["recovery_questions"] = entry["recovery_questions"]
             rows.append(row)
 
-    # Export standalone notes
     notes_data = passwords.get("_notes", {})
     for note_title, note_entries in notes_data.items():
         for entry in normalize_entries(note_entries):
@@ -107,7 +106,6 @@ def export_passwords():
         response.headers["Content-Disposition"] = "attachment; filename=vault_export.json"
         return response
 
-    # For CSV, serialize recovery_questions to JSON string
     fieldnames = ["type", "website", "username", "password", "folder", "notes", "title", "content", "recovery_questions"]
     csv_rows = []
     for row in rows:

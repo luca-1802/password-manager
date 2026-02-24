@@ -54,7 +54,7 @@ class Config:
     SESSION_PERMANENT = False
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Strict"
-    SESSION_COOKIE_SECURE = os.environ.get("FLASK_ENV") == "production" or os.environ.get("FLASK_ENV") is None
+    SESSION_COOKIE_SECURE = os.environ.get("SECURE_COOKIES", "").lower() == "true"
     PERMANENT_SESSION_LIFETIME = 300
     VAULT_FILE = os.path.join(_DATA_DIR, "vault.enc")
     TOTP_FILE = os.path.join(_DATA_DIR, ".totp.enc")

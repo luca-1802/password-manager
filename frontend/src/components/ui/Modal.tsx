@@ -41,7 +41,7 @@ export default function Modal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="absolute inset-0 bg-black/60"
+            className="absolute inset-0 bg-black/70"
             onClick={onClose}
           />
           <motion.div
@@ -50,25 +50,25 @@ export default function Modal({
             exit={{ opacity: 0, y: 8 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
             className={cn(
-              "relative w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden",
+              "relative w-full max-w-md max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)] bg-surface-raised border border-border rounded-xl flex flex-col overflow-hidden",
               className
             )}
           >
             {title && (
-              <div className="flex items-center justify-between px-6 pt-5 pb-0">
-                <h2 className="text-lg font-semibold text-zinc-50">
+              <div className="flex items-center justify-between px-6 pt-5 pb-0 flex-shrink-0">
+                <h2 className="text-lg font-semibold text-text-primary">
                   {title}
                 </h2>
                 <button
                   onClick={onClose}
-                  className="text-zinc-500 hover:text-zinc-300 p-1 rounded-lg hover:bg-zinc-800 transition-colors"
+                  className="text-text-muted hover:text-text-secondary p-1 rounded-lg hover:bg-surface-hover transition-colors"
                   aria-label="Close"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
             )}
-            <div className="p-6">{children}</div>
+            <div className="p-6 overflow-y-auto overscroll-contain">{children}</div>
           </motion.div>
         </div>
       )}

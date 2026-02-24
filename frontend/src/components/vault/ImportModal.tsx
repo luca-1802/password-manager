@@ -88,7 +88,7 @@ export default function ImportModal({ open, onClose, onImported }: Props) {
   return (
     <Modal open={open} onClose={handleClose} title="Import Vault">
       <div className="space-y-5">
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-text-muted">
           Import passwords and notes from a JSON, CSV, or encrypted (.enc)
           file. Exact duplicates will be skipped.
         </p>
@@ -104,21 +104,21 @@ export default function ImportModal({ open, onClose, onImported }: Props) {
             onClick={() => inputRef.current?.click()}
             className={`flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
               dragOver
-                ? "border-orange-500/50 bg-orange-500/5"
-                : "border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/30"
+                ? "border-accent/50 bg-accent/5"
+                : "border-border hover:border-border hover:bg-surface-hover/30"
             }`}
           >
             <Upload
               className={`w-8 h-8 ${
-                dragOver ? "text-orange-400" : "text-zinc-600"
+                dragOver ? "text-accent-text" : "text-text-muted"
               }`}
             />
             <div className="text-center">
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-text-secondary">
                 Drop a file here or{" "}
-                <span className="text-orange-400">browse</span>
+                <span className="text-accent-text">browse</span>
               </p>
-              <p className="text-xs text-zinc-600 mt-1">
+              <p className="text-xs text-text-muted mt-1">
                 .json, .csv, or .enc
               </p>
             </div>
@@ -136,11 +136,11 @@ export default function ImportModal({ open, onClose, onImported }: Props) {
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 bg-zinc-800/50 border border-zinc-800 rounded-lg">
-              <FileText className="w-5 h-5 text-orange-400 shrink-0" />
+            <div className="flex items-center gap-3 p-3 bg-surface-hover border border-border rounded-lg">
+              <FileText className="w-5 h-5 text-accent-text shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-zinc-200 truncate">{file.name}</p>
-                <p className="text-xs text-zinc-500">
+                <p className="text-sm text-text-primary truncate">{file.name}</p>
+                <p className="text-xs text-text-muted">
                   {ext} file &middot;{" "}
                   {file.size < 1024
                     ? `${file.size} B`
@@ -149,7 +149,7 @@ export default function ImportModal({ open, onClose, onImported }: Props) {
               </div>
               <button
                 onClick={() => setFile(null)}
-                className="p-1 text-zinc-500 hover:text-zinc-300 transition-colors"
+                className="p-1 text-text-muted hover:text-text-primary transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>

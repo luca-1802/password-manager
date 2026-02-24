@@ -5,6 +5,7 @@ import type { AuthStatus } from "./types";
 import { ToastProvider } from "./components/ui/Toast";
 import LoginPage from "./pages/LoginPage";
 import VaultPage from "./pages/VaultPage";
+import DashboardPage from "./pages/DashboardPage";
 import SettingsPage from "./pages/SettingsPage";
 
 function App() {
@@ -64,6 +65,16 @@ function App() {
           element={
             authState.authenticated ? (
               <VaultPage onLogout={onLogout} />
+            ) : (
+              <Navigate to="/" />
+            )
+          }
+        />
+        <Route
+          path="/dashboard"
+          element={
+            authState.authenticated ? (
+              <DashboardPage onLogout={onLogout} />
             ) : (
               <Navigate to="/" />
             )

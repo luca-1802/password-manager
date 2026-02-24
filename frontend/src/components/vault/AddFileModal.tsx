@@ -1,9 +1,10 @@
-import { useState, useRef, type FormEvent, type DragEvent } from "react";
-import { Upload } from "lucide-react";
+import { useState, useMemo, useRef, type FormEvent, type DragEvent } from "react";
+import { Upload, FolderOpen, Plus } from "lucide-react";
 import { apiUploadFileWithFields } from "../../api";
 import Modal from "../ui/Modal";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
+import Select from "../ui/Select";
 import { useToast } from "../ui/Toast";
 
 interface Props {
@@ -13,7 +14,7 @@ interface Props {
   folders: string[];
 }
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -32,6 +33,12 @@ export default function AddFileModal({ open, onClose, onSaved, folders }: Props)
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const folderOptions = useMemo(() => [
+    { value: "", label: "None" },
+    ...folders.map((f) => ({ value: f, label: f, icon: <FolderOpen className="w-3.5 h-3.5 text-text-muted" /> })),
+    { value: "__new__", label: "+ New folder...", icon: <Plus className="w-3.5 h-3.5 text-accent" /> },
+  ], [folders]);
 
   const handleFileSelect = (selectedFile: File | null) => {
     if (!selectedFile) return;
@@ -125,28 +132,28 @@ export default function AddFileModal({ open, onClose, onSaved, folders }: Props)
           onDragLeave={handleDragLeave}
           className={`flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed rounded-lg cursor-pointer transition-colors duration-150 ${
             dragOver
-              ? "border-indigo-500 bg-indigo-500/10"
+              ? "border-accent bg-accent/10"
               : file
-                ? "border-indigo-500/50 bg-indigo-500/5"
-                : "border-zinc-700 hover:border-zinc-600 bg-zinc-900/50"
+                ? "border-accent/50 bg-accent/5"
+                : "border-border hover:border-border bg-surface-raised/50"
           }`}
         >
-          <Upload className={`w-8 h-8 ${file ? "text-indigo-400" : "text-zinc-500"}`} />
+          <Upload className={`w-8 h-8 ${file ? "text-accent-text" : "text-text-muted"}`} />
           {file ? (
             <div className="text-center">
-              <p className="text-sm font-medium text-zinc-200 truncate max-w-[280px]">
+              <p className="text-sm font-medium text-text-primary truncate max-w-[280px]">
                 {file.name}
               </p>
-              <p className="text-xs text-zinc-500 mt-0.5">
+              <p className="text-xs text-text-muted mt-0.5">
                 {formatFileSize(file.size)}
               </p>
             </div>
           ) : (
             <div className="text-center">
-              <p className="text-sm text-zinc-400">
+              <p className="text-sm text-text-secondary">
                 Drop a file here or click to browse
               </p>
-              <p className="text-xs text-zinc-600 mt-0.5">
+              <p className="text-xs text-text-muted mt-0.5">
                 Max size: {formatFileSize(MAX_FILE_SIZE)}
               </p>
             </div>
@@ -172,42 +179,35 @@ export default function AddFileModal({ open, onClose, onSaved, folders }: Props)
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
             maxLength={1000}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150 resize-none"
+            className="w-full bg-surface-raised border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/20 transition-colors duration-150 resize-none"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1.5">
+          <label className="block text-xs font-medium text-text-muted mb-1.5">
             Folder (optional)
           </label>
-          <select
+          <Select
             value={isNewFolder ? "__new__" : folder}
-            onChange={(e) => {
-              if (e.target.value === "__new__") {
+            onChange={(val) => {
+              if (val === "__new__") {
                 setIsNewFolder(true);
                 setFolder("");
               } else {
                 setIsNewFolder(false);
-                setFolder(e.target.value);
+                setFolder(val);
               }
             }}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-50 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150 cursor-pointer"
-          >
-            <option value="" className="bg-zinc-900 text-zinc-100">None</option>
-            {folders.map((f) => (
-              <option key={f} value={f} className="bg-zinc-900 text-zinc-100">
-                {f}
-              </option>
-            ))}
-            <option value="__new__" className="bg-zinc-900 text-zinc-100">+ New folder...</option>
-          </select>
+            options={folderOptions}
+            placeholder="None"
+          />
           {isNewFolder && (
             <input
               value={folder}
               onChange={(e) => setFolder(e.target.value)}
               placeholder="Folder name"
               maxLength={50}
-              className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150"
+              className="mt-2 w-full bg-surface-raised border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/20 transition-colors duration-150"
             />
           )}
         </div>

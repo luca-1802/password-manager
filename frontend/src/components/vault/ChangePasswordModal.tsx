@@ -86,11 +86,11 @@ export default function ChangePasswordModal({
   const requirement = (met: boolean, label: string) => (
     <li className="flex items-center gap-1.5">
       {met ? (
-        <Check className="w-3 h-3 text-green-500" />
+        <Check className="w-3 h-3 text-success" />
       ) : (
-        <X className="w-3 h-3 text-zinc-500" />
+        <X className="w-3 h-3 text-text-muted" />
       )}
-      <span className={met ? "text-green-500" : "text-zinc-500"}>{label}</span>
+      <span className={met ? "text-success" : "text-text-muted"}>{label}</span>
     </li>
   );
 
@@ -103,7 +103,7 @@ export default function ChangePasswordModal({
   return (
     <Modal open={open} onClose={handleClose} title="Change master password">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="flex items-center gap-3 text-zinc-400">
+        <div className="flex items-center gap-3 text-text-secondary">
           <KeyRound className="w-5 h-5 shrink-0" />
           <p className="text-sm">
             After changing your master password you will be logged out and need

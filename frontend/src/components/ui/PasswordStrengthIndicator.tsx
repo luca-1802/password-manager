@@ -8,12 +8,8 @@ interface PasswordStrengthIndicatorProps {
   className?: string;
 }
 
-// FIX #1: Changed from 5 to 4 segments. StrengthLevel is 0-4, meaning
-// 0 = no active segments, 4 = all segments active. With 5 segments the
-// max level (4) could never fill the last segment, leaving it permanently
-// inactive — a clear visual bug.
 const SEGMENT_COUNT = 4;
-const INACTIVE_COLOR = "#27272a";
+const INACTIVE_COLOR = "#23232a";
 
 const particles = [
   { x: [0, -8, -4], y: [0, -14, -10] },
@@ -29,17 +25,12 @@ export default function PasswordStrengthIndicator({
   const prevLevelRef = useRef(strength.level);
   const [showSparkles, setShowSparkles] = useState(false);
   const sparkleKeyRef = useRef(0);
-  // FIX #4: Track the level that last triggered a pulse so the scale
-  // keyframe animation only fires once per level change, not on every
-  // re-render while a user is typing within the same level.
   const [pulseLevel, setPulseLevel] = useState(strength.level);
 
   useEffect(() => {
     const prevLevel = prevLevelRef.current;
     prevLevelRef.current = strength.level;
 
-    // Only update pulseLevel when level actually changes to prevent
-    // re-triggering the scale keyframe on every keystroke.
     if (strength.level !== prevLevel) {
       setPulseLevel(strength.level);
     }
@@ -74,14 +65,9 @@ export default function PasswordStrengthIndicator({
         >
           <div className="pt-2">
             <div className="flex items-center gap-3">
-              {/* Segments container — overflow-visible so sparkle
-                  particles can animate above the bar (FIX #3) */}
               <div className="relative flex flex-1 gap-1">
                 {Array.from({ length: SEGMENT_COUNT }, (_, i) => {
                   const isActive = i < strength.level;
-                  // FIX #4 continued: Compare against pulseLevel so the
-                  // keyframe array is only present on the first render
-                  // after a level change, not every re-render.
                   const shouldPulse =
                     i === pulseLevel - 1 && pulseLevel === strength.level;
 
@@ -111,10 +97,6 @@ export default function PasswordStrengthIndicator({
                         },
                         scale: shouldPulse
                           ? {
-                              // FIX #2: Changed repeat from 1 to 0. In
-                              // Framer Motion repeat:1 means the animation
-                              // plays twice (initial + 1 repeat), causing a
-                              // stutter. repeat:0 gives a single clean pulse.
                               duration: 0.6,
                               repeat: 0,
                               ease: "easeInOut",
@@ -129,9 +111,6 @@ export default function PasswordStrengthIndicator({
                   );
                 })}
 
-                {/* Shimmer wave - level >= 3 only.
-                    FIX #5: Wrapped in AnimatePresence so the shimmer fades
-                    out when dropping below level 3 instead of vanishing. */}
                 <AnimatePresence>
                   {strength.level >= 3 && (
                     <motion.div
@@ -159,16 +138,12 @@ export default function PasswordStrengthIndicator({
                   )}
                 </AnimatePresence>
 
-                {/* Sparkle particles - level 4 only */}
                 <AnimatePresence>
                   {showSparkles &&
                     particles.map((particle, index) => (
                       <motion.div
                         key={`sparkle-${sparkleKeyRef.current}-${index}`}
                         className="absolute right-0 top-1/2 h-1 w-1 rotate-45 rounded-[1px]"
-                        // FIX #6: Use strength.hex via inline style instead
-                        // of hardcoding bg-emerald-400. Keeps sparkle color
-                        // in sync with the theme config in passwordStrength.ts.
                         style={{ backgroundColor: strength.hex }}
                         initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
                         animate={{
@@ -187,7 +162,6 @@ export default function PasswordStrengthIndicator({
                 </AnimatePresence>
               </div>
 
-              {/* Label */}
               <AnimatePresence mode="wait">
                 <motion.span
                   key={strength.label}
