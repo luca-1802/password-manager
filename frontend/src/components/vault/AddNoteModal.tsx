@@ -1,8 +1,10 @@
-import { useState, type FormEvent } from "react";
+import { useState, useMemo, type FormEvent } from "react";
+import { FolderOpen, Plus } from "lucide-react";
 import { apiFetch } from "../../api";
 import Modal from "../ui/Modal";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
+import Select from "../ui/Select";
 import { useToast } from "../ui/Toast";
 import RecoveryQuestionsSection from "./RecoveryQuestionsSection";
 import type { RecoveryQuestion } from "../../types";
@@ -23,6 +25,12 @@ export default function AddNoteModal({ open, onClose, onSaved, folders }: Props)
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  const folderOptions = useMemo(() => [
+    { value: "", label: "None" },
+    ...folders.map((f) => ({ value: f, label: f, icon: <FolderOpen className="w-3.5 h-3.5 text-text-muted" /> })),
+    { value: "__new__", label: "+ New folder...", icon: <Plus className="w-3.5 h-3.5 text-accent" /> },
+  ], [folders]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -86,7 +94,7 @@ export default function AddNoteModal({ open, onClose, onSaved, folders }: Props)
             onChange={(e) => setContent(e.target.value)}
             rows={5}
             maxLength={10000}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150 resize-none"
+            className="w-full bg-surface-raised border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/20 transition-colors duration-150 resize-none"
           />
         </div>
 
@@ -97,37 +105,30 @@ export default function AddNoteModal({ open, onClose, onSaved, folders }: Props)
         />
 
         <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1.5">
+          <label className="block text-xs font-medium text-text-muted mb-1.5">
             Folder (optional)
           </label>
-          <select
+          <Select
             value={isNewFolder ? "__new__" : folder}
-            onChange={(e) => {
-              if (e.target.value === "__new__") {
+            onChange={(val) => {
+              if (val === "__new__") {
                 setIsNewFolder(true);
                 setFolder("");
               } else {
                 setIsNewFolder(false);
-                setFolder(e.target.value);
+                setFolder(val);
               }
             }}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-50 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150 cursor-pointer"
-          >
-            <option value="" className="bg-zinc-900 text-zinc-100">None</option>
-            {folders.map((f) => (
-              <option key={f} value={f} className="bg-zinc-900 text-zinc-100">
-                {f}
-              </option>
-            ))}
-            <option value="__new__" className="bg-zinc-900 text-zinc-100">+ New folder...</option>
-          </select>
+            options={folderOptions}
+            placeholder="None"
+          />
           {isNewFolder && (
             <input
               value={folder}
               onChange={(e) => setFolder(e.target.value)}
               placeholder="Folder name"
               maxLength={50}
-              className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150"
+              className="mt-2 w-full bg-surface-raised border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/20 transition-colors duration-150"
             />
           )}
         </div>

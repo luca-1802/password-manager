@@ -97,7 +97,7 @@ export default function ExportModal({ open, onClose, folders }: Props) {
     <Modal open={open} onClose={handleClose} title="Export Vault">
       <div className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-zinc-400 mb-2">
+          <label className="block text-sm font-medium text-text-secondary mb-2">
             Format
           </label>
           <div className="flex gap-2">
@@ -108,8 +108,8 @@ export default function ExportModal({ open, onClose, folders }: Props) {
                 className={cn(
                   "px-4 py-2 text-xs font-medium rounded-lg border transition-colors cursor-pointer",
                   format === f
-                    ? "bg-orange-500/15 text-orange-400 border-orange-500/30"
-                    : "text-zinc-500 border-zinc-800 hover:text-zinc-300 hover:bg-zinc-800/50"
+                    ? "bg-accent/15 text-accent-text border-accent/30"
+                    : "text-text-muted border-border hover:text-text-secondary hover:bg-surface-hover"
                 )}
               >
                 {f === "encrypted" ? "ENCRYPTED" : f.toUpperCase()}
@@ -149,25 +149,25 @@ export default function ExportModal({ open, onClose, folders }: Props) {
         )}
 
         <div>
-          <label className="block text-sm font-medium text-zinc-400 mb-2">
+          <label className="block text-sm font-medium text-text-secondary mb-2">
             Scope
           </label>
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
               <input
                 type="radio"
                 checked={exportAll}
                 onChange={() => setExportAll(true)}
-                className="accent-orange-500"
+                className="accent-accent"
               />
               Export all entries
             </label>
-            <label className="flex items-center gap-2 text-sm text-zinc-300 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
               <input
                 type="radio"
                 checked={!exportAll}
                 onChange={() => setExportAll(false)}
-                className="accent-orange-500"
+                className="accent-accent"
               />
               Select folders
             </label>
@@ -175,30 +175,30 @@ export default function ExportModal({ open, onClose, folders }: Props) {
         </div>
 
         {!exportAll && (
-          <div className="space-y-2 pl-3 border-l-2 border-zinc-800">
+          <div className="space-y-2 pl-3 border-l-2 border-border">
             {folders.length === 0 && (
-              <p className="text-xs text-zinc-600">No folders created yet</p>
+              <p className="text-xs text-text-muted">No folders created yet</p>
             )}
             {folders.map((folder) => (
               <label
                 key={folder}
-                className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer hover:text-zinc-300"
+                className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary"
               >
                 <input
                   type="checkbox"
                   checked={selectedFolders.has(folder)}
                   onChange={() => toggleFolder(folder)}
-                  className="accent-orange-500"
+                  className="accent-accent"
                 />
                 {folder}
               </label>
             ))}
-            <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer hover:text-zinc-300">
+            <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer hover:text-text-primary">
               <input
                 type="checkbox"
                 checked={includeUnfiled}
                 onChange={() => setIncludeUnfiled(!includeUnfiled)}
-                className="accent-orange-500"
+                className="accent-accent"
               />
               Unfiled entries
             </label>

@@ -2,19 +2,20 @@ import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { cn } from "../../lib/utils";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "ghost" | "danger";
+  variant?: "primary" | "secondary" | "ghost" | "danger" | "accent-ghost";
   size?: "sm" | "md" | "lg";
   icon?: ReactNode;
   loading?: boolean;
 }
 
 const variants = {
-  primary: "bg-orange-500 hover:bg-orange-600 text-white",
+  primary: "bg-accent hover:bg-accent-hover text-[#0a0a0b] font-semibold",
   secondary:
-    "bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700",
-  ghost: "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50",
+    "bg-surface-raised hover:bg-surface-hover text-text-secondary border border-border",
+  ghost: "text-text-secondary hover:text-text-primary hover:bg-surface-hover",
   danger:
     "bg-red-600/10 text-red-500 hover:bg-red-600/20 border border-red-600/20",
+  "accent-ghost": "text-accent-text hover:text-accent hover:bg-accent-muted",
 };
 
 const sizes = {

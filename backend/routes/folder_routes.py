@@ -116,7 +116,6 @@ def rename_folder(name):
                         changed = True
                 passwords[website] = entries
 
-            # Also rename folder in standalone notes
             notes_data = passwords.get("_notes", {})
             if isinstance(notes_data, dict):
                 for title in list(notes_data.keys()):
@@ -172,7 +171,6 @@ def delete_folder(name):
                         changed = True
                 passwords[website] = entries
 
-            # Also remove folder from standalone notes
             notes_data = passwords.get("_notes", {})
             if isinstance(notes_data, dict):
                 for title in list(notes_data.keys()):

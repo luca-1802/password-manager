@@ -28,7 +28,37 @@ def create_app():
         logger.warning("Could not set restrictive permissions on session directory: %s", session_dir)
 
     @app.before_request
+    def token_auth():
+        from flask import g
+        g.is_token_auth = False
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+            from backend.token_store import validate_token
+            material = validate_token(token)
+            if material:
+                g.is_token_auth = True
+                g.token_auth = material
+                g.token_string = token
+
+    @app.before_request
+    def handle_preflight():
+        if request.method == "OPTIONS":
+            origin = request.headers.get("Origin", "")
+            if origin.startswith("chrome-extension://"):
+                from flask import make_response
+                response = make_response()
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+                response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+                response.headers["Access-Control-Max-Age"] = "3600"
+                return response
+
+    @app.before_request
     def check_session_timeout():
+        from flask import g
+        if getattr(g, 'is_token_auth', False):
+            return
         if session.get("authenticated") or session.get("pending_2fa"):
             last_active = session.get("last_active", 0)
             if time.time() - last_active > app.config["INACTIVITY_TIMEOUT"]:
@@ -38,16 +68,24 @@ def create_app():
 
     @app.before_request
     def csrf_protect():
+        from flask import g
+        if getattr(g, 'is_token_auth', False):
+            return
         if request.method in ("POST", "PUT", "DELETE"):
             if request.path.startswith("/api/"):
                 exempt = ("/api/auth/login", "/api/auth/create")
-                if request.path not in exempt:
+                if request.path not in exempt and not request.path.startswith("/api/extension/"):
                     token = request.headers.get("X-CSRF-Token")
                     if not token or token != session.get("csrf_token"):
                         return jsonify({"error": "CSRF validation failed"}), 403
 
     @app.after_request
     def set_security_headers(response):
+        origin = request.headers.get("Origin", "")
+        if origin.startswith("chrome-extension://"):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self'; "
@@ -65,8 +103,11 @@ def create_app():
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
-        response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+        if not origin.startswith("chrome-extension://"):
+            response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+            response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+        else:
+            response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
         response.headers["Pragma"] = "no-cache"
         if "csrf_token" not in session:
@@ -84,6 +125,8 @@ def create_app():
     from backend.routes.note_routes import note_bp
     from backend.routes.file_routes import file_bp
     from backend.routes.breach_routes import breach_bp
+    from backend.routes.extension_routes import extension_bp
+    app.register_blueprint(extension_bp, url_prefix="/api/extension")
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(export_bp, url_prefix="/api/passwords/export")
     app.register_blueprint(import_bp, url_prefix="/api/passwords/import")

@@ -1,9 +1,10 @@
-import { useState, type FormEvent } from "react";
-import { Wand2 } from "lucide-react";
+import { useState, useMemo, type FormEvent } from "react";
+import { Wand2, Eye, EyeOff, FolderOpen, Plus } from "lucide-react";
 import { apiFetch } from "../../api";
 import Modal from "../ui/Modal";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
+import Select from "../ui/Select";
 import { useToast } from "../ui/Toast";
 import { useClipboard } from "../../hooks/useClipboard";
 import ColoredPassword from "../ui/ColoredPassword";
@@ -26,13 +27,20 @@ export default function AddPasswordModal({ open, onClose, onSaved, folders }: Pr
   const [notes, setNotes] = useState("");
   const [recoveryQuestions, setRecoveryQuestions] = useState<RecoveryQuestion[]>([]);
   const [isNewFolder, setIsNewFolder] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { copy } = useClipboard();
 
+  const folderOptions = useMemo(() => [
+    { value: "", label: "None" },
+    ...folders.map((f) => ({ value: f, label: f, icon: <FolderOpen className="w-3.5 h-3.5 text-text-muted" /> })),
+    { value: "__new__", label: "+ New folder...", icon: <Plus className="w-3.5 h-3.5 text-accent" /> },
+  ], [folders]);
+
   const handleGenerate = async () => {
-    const res = await apiFetch<{ password: string }>("/generate?length=19");
+    const res = await apiFetch<{ password: string }>("/generate?length=16");
     if (res?.ok) {
       setPassword(res.data.password);
     } else {
@@ -43,13 +51,14 @@ export default function AddPasswordModal({ open, onClose, onSaved, folders }: Pr
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!website || !username) {
-      setError("Website and username are required");
+    if (!website) {
+      setError("Website is required");
       return;
     }
 
     setLoading(true);
-    const body: Record<string, unknown> = { website, username };
+    const body: Record<string, unknown> = { website };
+    if (username.trim()) body.username = username;
     if (password) body.password = password;
     const trimmedFolder = folder.trim();
     if (trimmedFolder) body.folder = trimmedFolder;
@@ -88,6 +97,7 @@ export default function AddPasswordModal({ open, onClose, onSaved, folders }: Pr
     setNotes("");
     setRecoveryQuestions([]);
     setIsNewFolder(false);
+    setShowPassword(false);
     setError("");
   };
 
@@ -106,19 +116,39 @@ export default function AddPasswordModal({ open, onClose, onSaved, folders }: Pr
           autoFocus
         />
         <Input
-          placeholder="Username"
+          placeholder="Username (optional)"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
         />
         <div className="flex gap-2 items-start">
           <div className="flex-1">
-            <Input
-              type="password"
-              placeholder="Password (blank = auto-generate)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="off"
-            />
+            <div className="relative">
+              {password && showPassword ? (
+                <div
+                  className="w-full bg-surface-sunken border border-border rounded-lg px-3 py-2.5 text-sm font-mono break-all min-h-[40px] flex items-center pr-10"
+                >
+                  <ColoredPassword password={password} />
+                </div>
+              ) : (
+                <input
+                  type="password"
+                  placeholder="Password (blank = auto-generate)"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="off"
+                  className="w-full bg-surface-sunken border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/20 transition-colors duration-150 pr-10"
+                />
+              )}
+              {password && (
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary transition-colors duration-150 z-10"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              )}
+            </div>
           </div>
           <Button
             type="button"
@@ -126,22 +156,14 @@ export default function AddPasswordModal({ open, onClose, onSaved, folders }: Pr
             size="md"
             onClick={handleGenerate}
             icon={<Wand2 className="w-4 h-4" />}
-            className="shrink-0 py-2.5"
+            className="shrink-0 h-[40px]"
           />
         </div>
 
         <PasswordStrengthIndicator password={password} />
 
-        {password && (
-          <div className="bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2">
-            <code className="text-xs font-mono break-all">
-              <ColoredPassword password={password} />
-            </code>
-          </div>
-        )}
-
         <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1.5">
+          <label className="block text-xs font-medium text-text-muted mb-1.5">
             Notes (optional)
           </label>
           <textarea
@@ -150,7 +172,7 @@ export default function AddPasswordModal({ open, onClose, onSaved, folders }: Pr
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             maxLength={10000}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150 resize-none"
+            className="w-full bg-surface-raised border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/20 transition-colors duration-150 resize-none"
           />
         </div>
 
@@ -161,37 +183,30 @@ export default function AddPasswordModal({ open, onClose, onSaved, folders }: Pr
         />
 
         <div>
-          <label className="block text-xs font-medium text-zinc-500 mb-1.5">
+          <label className="block text-xs font-medium text-text-muted mb-1.5">
             Folder (optional)
           </label>
-          <select
+          <Select
             value={isNewFolder ? "__new__" : folder}
-            onChange={(e) => {
-              if (e.target.value === "__new__") {
+            onChange={(val) => {
+              if (val === "__new__") {
                 setIsNewFolder(true);
                 setFolder("");
               } else {
                 setIsNewFolder(false);
-                setFolder(e.target.value);
+                setFolder(val);
               }
             }}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-50 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150 cursor-pointer"
-          >
-            <option value="" className="bg-zinc-900 text-zinc-100">None</option>
-            {folders.map((f) => (
-              <option key={f} value={f} className="bg-zinc-900 text-zinc-100">
-                {f}
-              </option>
-            ))}
-            <option value="__new__" className="bg-zinc-900 text-zinc-100">+ New folder...</option>
-          </select>
+            options={folderOptions}
+            placeholder="None"
+          />
           {isNewFolder && (
             <input
               value={folder}
               onChange={(e) => setFolder(e.target.value)}
               placeholder="Folder name"
               maxLength={50}
-              className="mt-2 w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700 transition-colors duration-150"
+              className="mt-2 w-full bg-surface-raised border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/20 transition-colors duration-150"
             />
           )}
         </div>

@@ -1,0 +1,14 @@
+{
+  "name": "password-vault-extension",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0"
+  }
+}

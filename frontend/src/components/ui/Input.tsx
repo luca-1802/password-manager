@@ -17,7 +17,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-zinc-400 mb-1.5">
+          <label className="block text-sm font-medium text-text-secondary mb-1.5">
             {label}
           </label>
         )}
@@ -26,7 +26,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             <div
               className={cn(
                 "absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-150",
-                isFocused ? "text-zinc-400" : "text-zinc-600"
+                isFocused ? "text-text-secondary" : "text-text-muted"
               )}
             >
               {icon}
@@ -44,8 +44,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
               props.onBlur?.(e);
             }}
             className={cn(
-              "w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-600",
-              "focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-700",
+              "w-full bg-surface-sunken border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted",
+              "focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/20",
               "transition-colors duration-150",
               icon && "pl-10",
               isPassword && "pr-10",
@@ -58,7 +58,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400 transition-colors duration-150"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary transition-colors duration-150"
             >
               {showPassword ? (
                 <EyeOff className="w-4 h-4" />

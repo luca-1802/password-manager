@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 export interface RecoveryQuestion {
   question: string;
   answer: string;
@@ -73,3 +75,36 @@ export interface SecureFile {
 }
 
 export type FilesMap = Record<string, SecureFile[]>;
+export type VaultItemType = "password" | "note" | "file";
+
+export interface VaultItem {
+  id: string;
+  type: VaultItemType;
+  key: string;
+  index: number;
+  folder?: string | null;
+  credential?: Credential;
+  note?: SecureNote;
+  file?: SecureFile;
+}
+
+export type FolderFilter = "all" | "unfiled" | (string & {});
+
+export interface CommandAction {
+  id: string;
+  label: string;
+  description?: string;
+  icon: ReactNode;
+  shortcut?: string;
+  action: () => void;
+  category: "navigation" | "action" | "vault-item";
+}
+
+export interface ActionableItem {
+  id: string;
+  severity: "critical" | "warning" | "info";
+  title: string;
+  description: string;
+  count: number;
+  action: () => void;
+}

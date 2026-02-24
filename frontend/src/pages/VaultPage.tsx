@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   DndContext,
   DragOverlay,
@@ -11,21 +11,27 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { Plus, Wand2, FileText, Upload, ShieldAlert, Loader2 } from "lucide-react";
-import type { Credential, SecureNote, SecureFile } from "../types";
+import { Plus, Wand2, FileText, Upload, LayoutDashboard, Settings as SettingsIcon } from "lucide-react";
+import type { FolderFilter, RecoveryQuestion } from "../types";
+import { flattenVaultItems, filterVaultItems } from "../lib/vaultItems";
 import { usePasswords } from "../hooks/usePasswords";
 import { useNotes } from "../hooks/useNotes";
 import { useFiles } from "../hooks/useFiles";
 import { useFolders } from "../hooks/useFolders";
+import { useSelection } from "../hooks/useSelection";
+import { useSidebarState } from "../hooks/useSidebarState";
+import { useCommandPalette } from "../hooks/useCommandPalette";
+import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation";
 import { useInactivityTimeout } from "../hooks/useInactivityTimeout";
 import { useAutoLockOnHidden } from "../hooks/useAutoLockOnHidden";
 import { useVisibilityLock } from "../hooks/useVisibilityLock";
 import { useBreachCheck } from "../hooks/useBreachCheck";
 import { useToast } from "../components/ui/Toast";
-import Header from "../components/layout/Header";
-import SearchBar from "../components/vault/SearchBar";
-import FolderBar, { type FolderFilter } from "../components/vault/FolderBar";
-import PasswordGrid from "../components/vault/PasswordGrid";
+import AppShell from "../components/layout/AppShell";
+import Sidebar from "../components/layout/Sidebar";
+import DetailPanel from "../components/layout/DetailPanel";
+import VaultItemList from "../components/vault/VaultItemList";
+import CommandPalette from "../components/ui/CommandPalette";
 import AddPasswordModal from "../components/vault/AddPasswordModal";
 import AddNoteModal from "../components/vault/AddNoteModal";
 import AddFileModal from "../components/vault/AddFileModal";
@@ -46,118 +52,91 @@ interface DragData {
 
 export default function VaultPage({ onLogout }: Props) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { passwords, notes, files, serverFolders, fetchPasswords, editPassword, deletePassword } =
     usePasswords();
   const { editNote, deleteNote } = useNotes(fetchPasswords);
   const { editFile, deleteFile, downloadFile } = useFiles(fetchPasswords);
-  const { folders, createFolder, renameFolder, deleteFolder } =
-    useFolders(serverFolders);
+  const { folders, createFolder, renameFolder, deleteFolder } = useFolders(serverFolders);
+
   const [search, setSearch] = useState("");
   const [folderFilter, setFolderFilter] = useState<FolderFilter>("all");
   const [showAdd, setShowAdd] = useState(false);
   const [showAddNote, setShowAddNote] = useState(false);
   const [showAddFile, setShowAddFile] = useState(false);
   const [showGenerate, setShowGenerate] = useState(false);
-  const [page, setPage] = useState(1);
   const [activeDrag, setActiveDrag] = useState<DragData | null>(null);
+
+  const { selectedItem, selectItem, clearSelection } = useSelection();
+  const { collapsed, toggleCollapsed } = useSidebarState();
+  const { open: cmdOpen, setOpen: setCmdOpen } = useCommandPalette();
+
   const { toast } = useToast();
-  const { breachResults, checking, checkBreaches, clearBreachResults, getBreachCount } =
+  const { breachResults, checking: checkingBreaches, checkBreaches, clearBreachResults, getBreachCount } =
     useBreachCheck();
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 200, tolerance: 5 },
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
   );
 
   useInactivityTimeout(onLogout);
   const { autoLockOnHidden } = useAutoLockOnHidden();
   useVisibilityLock(onLogout, autoLockOnHidden);
 
+  useEffect(() => { fetchPasswords(); }, [fetchPasswords]);
+  useEffect(() => { clearBreachResults(); }, [passwords, clearBreachResults]);
+
+  const passwordCount = useMemo(
+    () => Object.values(passwords).reduce((a, c) => a + c.length, 0),
+    [passwords]
+  );
   useEffect(() => {
-    fetchPasswords();
-  }, [fetchPasswords]);
+    if (passwordCount > 0 && !breachResults && !checkingBreaches) {
+      checkBreaches();
+    }
+  }, [passwordCount, breachResults, checkingBreaches, checkBreaches]);
+
+  const allItems = useMemo(
+    () => flattenVaultItems(passwords, notes, files),
+    [passwords, notes, files]
+  );
+
+  const filteredItems = useMemo(
+    () => filterVaultItems(allItems, search, folderFilter),
+    [allItems, search, folderFilter]
+  );
+
+  useKeyboardNavigation(filteredItems, selectedItem, selectItem, clearSelection);
 
   useEffect(() => {
-    setPage(1);
-  }, [search, folderFilter]);
+    if (selectedItem) {
+      const updated = allItems.find((i) => i.id === selectedItem.id);
+      if (updated) {
+        selectItem(updated);
+      } else {
+        clearSelection();
+      }
+    }
+  }, [allItems]);
 
   useEffect(() => {
-    clearBreachResults();
-  }, [passwords, clearBreachResults]);
-
-  const filtered = Object.entries(passwords)
-    .map(([site, creds]) => {
-      const filteredCreds = creds.filter((c: Credential) => {
-        if (folderFilter === "unfiled") return !c.folder;
-        if (folderFilter !== "all") return c.folder === folderFilter;
-        return true;
-      });
-      return [site, filteredCreds] as [string, Credential[]];
-    })
-    .filter(([site, creds]) => {
-      if (creds.length === 0) return false;
-      return site.toLowerCase().includes(search.toLowerCase());
-    });
-
-  const filteredNotes = Object.entries(notes)
-    .map(([title, noteEntries]) => {
-      const filteredEntries = noteEntries.filter((n: SecureNote) => {
-        if (folderFilter === "unfiled") return !n.folder;
-        if (folderFilter !== "all") return n.folder === folderFilter;
-        return true;
-      });
-      return [title, filteredEntries] as [string, SecureNote[]];
-    })
-    .filter(([title, noteEntries]) => {
-      if (noteEntries.length === 0) return false;
-      return (
-        title.toLowerCase().includes(search.toLowerCase()) ||
-        noteEntries.some((n) =>
-          n.content.toLowerCase().includes(search.toLowerCase())
-        )
+    const state = location.state as { selectItem?: { website: string; index: number }; openAddModal?: boolean } | null;
+    if (state?.selectItem && allItems.length > 0) {
+      const { website, index } = state.selectItem;
+      const target = allItems.find(
+        (i) => i.type === "password" && i.key === website && i.index === index
       );
-    });
-
-  const filteredFiles = Object.entries(files)
-    .map(([label, fileEntries]) => {
-      const filteredEntries = fileEntries.filter((f: SecureFile) => {
-        if (folderFilter === "unfiled") return !f.folder;
-        if (folderFilter !== "all") return f.folder === folderFilter;
-        return true;
-      });
-      return [label, filteredEntries] as [string, SecureFile[]];
-    })
-    .filter(([label, fileEntries]) => {
-      if (fileEntries.length === 0) return false;
-      const q = search.toLowerCase();
-      return (
-        label.toLowerCase().includes(q) ||
-        fileEntries.some(
-          (f) =>
-            f.original_name.toLowerCase().includes(q) ||
-            (f.description && f.description.toLowerCase().includes(q))
-        )
-      );
-    });
-
-  const totalFiles = Object.values(files).reduce(
-    (acc, fileEntries) => acc + fileEntries.length,
-    0
-  );
-
-  const totalPasswords = Object.values(passwords).reduce(
-    (acc, creds) => acc + creds.length,
-    0
-  );
-
-  const totalNotes = Object.values(notes).reduce(
-    (acc, noteEntries) => acc + noteEntries.length,
-    0
-  );
+      if (target) {
+        selectItem(target);
+        navigate(location.pathname, { replace: true, state: {} });
+      }
+    }
+    if (state?.openAddModal) {
+      setShowAdd(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [allItems, location.state, selectItem, navigate, location.pathname]);
 
   const handleCreateFolder = useCallback(
     async (name: string) => {
@@ -220,30 +199,68 @@ export default function VaultPage({ onLogout }: Props) {
     } else if (data.entryType === "note") {
       res = await editNote(data.website, data.index, undefined, targetFolder);
     } else {
-      res = await editPassword(
-        data.website,
-        data.index,
-        data.username,
-        data.password,
-        targetFolder
-      );
+      res = await editPassword(data.website, data.index, data.username, data.password, targetFolder);
     }
-    if (
-      res &&
-      typeof res === "object" &&
-      "ok" in res &&
-      (res as { ok: boolean }).ok
-    ) {
-      toast(
-        "success",
-        targetFolder
-          ? `Moved to "${targetFolder}"`
-          : "Moved to unfiled"
-      );
+    if (res && typeof res === "object" && "ok" in res && (res as { ok: boolean }).ok) {
+      toast("success", targetFolder ? `Moved to "${targetFolder}"` : "Moved to unfiled");
     } else {
       toast("error", "Failed to move entry");
     }
   };
+
+  const handleNavigate = (page: string) => {
+    if (page === "settings") navigate("/settings");
+    else if (page === "dashboard") navigate("/dashboard");
+    else if (page === "generator") setShowGenerate(true);
+  };
+
+  const handleAddMenu = () => {
+    setShowAdd(true);
+  };
+
+  const cmdActions = useMemo(() => [
+    { id: "add-password", label: "Add Password", icon: <Plus className="w-3.5 h-3.5" />, action: () => setShowAdd(true) },
+    { id: "add-note", label: "Add Note", icon: <FileText className="w-3.5 h-3.5" />, action: () => setShowAddNote(true) },
+    { id: "add-file", label: "Add File", icon: <Upload className="w-3.5 h-3.5" />, action: () => setShowAddFile(true) },
+    { id: "generate", label: "Generate Password", icon: <Wand2 className="w-3.5 h-3.5" />, action: () => setShowGenerate(true) },
+    { id: "dashboard", label: "Security", icon: <LayoutDashboard className="w-3.5 h-3.5" />, action: () => navigate("/dashboard") },
+    { id: "settings", label: "Settings", icon: <SettingsIcon className="w-3.5 h-3.5" />, action: () => navigate("/settings") },
+  ], [navigate]);
+
+  const handleEditPassword = useCallback(
+    async (website: string, index: number, username: string, password: string, folder?: string | null, notes?: string | null, recovery_questions?: RecoveryQuestion[] | null) => {
+      const res = await editPassword(website, index, username, password, folder, notes, recovery_questions);
+      return res;
+    },
+    [editPassword]
+  );
+
+  const handleEditNote = useCallback(
+    async (title: string, index: number, content?: string, folder?: string | null, recovery_questions?: RecoveryQuestion[] | null) => {
+      const res = await editNote(title, index, content, folder, recovery_questions);
+      return res;
+    },
+    [editNote]
+  );
+
+  const handleEditFile = useCallback(
+    async (label: string, index: number, description?: string, folder?: string | null) => {
+      const res = await editFile(label, index, description, folder);
+      return res;
+    },
+    [editFile]
+  );
+
+  const handleDownloadFile = useCallback(
+    async (label: string, index: number) => {
+      const item = allItems.find(
+        (i) => i.type === "file" && i.key === label && i.index === index
+      );
+      const originalName = item?.file?.original_name || label;
+      return downloadFile(label, index, originalName);
+    },
+    [downloadFile, allItems]
+  );
 
   return (
     <DndContext
@@ -252,158 +269,105 @@ export default function VaultPage({ onLogout }: Props) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="min-h-screen bg-bg">
-        <Header
-          entryCount={totalPasswords + totalNotes + totalFiles}
-          onSettings={() => navigate("/settings")}
-          onLock={onLogout}
-        />
-
-        <main className="max-w-2xl mx-auto px-4 py-8">
-          <SearchBar value={search} onChange={setSearch} className="mb-4" />
-
-          <FolderBar
+      <AppShell
+        sidebar={
+          <Sidebar
+            collapsed={collapsed}
+            onToggleCollapse={toggleCollapsed}
             folders={folders}
-            activeFilter={folderFilter}
-            onFilterChange={setFolderFilter}
-            onCreate={handleCreateFolder}
-            onRename={handleRenameFolder}
-            onDelete={handleDeleteFolder}
-            className="mb-4"
+            activeFolder={folderFilter}
+            onFolderChange={setFolderFilter}
+            onCreateFolder={handleCreateFolder}
+            onRenameFolder={handleRenameFolder}
+            onDeleteFolder={handleDeleteFolder}
+            activePage="vault"
+            onNavigate={handleNavigate}
+            onLock={onLogout}
+            onSearch={() => setCmdOpen(true)}
+            onAdd={handleAddMenu}
           />
-
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowAdd(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Add
-              </button>
-              <button
-                onClick={() => setShowGenerate(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors cursor-pointer"
-              >
-                <Wand2 className="w-3.5 h-3.5" />
-                Generate
-              </button>
-            </div>
-            <button
-              onClick={async () => {
-                const res = await checkBreaches();
-                if (res?.ok) {
-                  const d = res.data;
-                  toast(
-                    d.total_breached > 0 ? "error" : "success",
-                    d.total_breached > 0
-                      ? `${d.total_breached} of ${d.total_checked} password${d.total_checked === 1 ? "" : "s"} found in breaches`
-                      : `All ${d.total_checked} password${d.total_checked === 1 ? "" : "s"} are safe`
-                  );
-                } else {
-                  toast("error", "Breach check failed");
-                }
-              }}
-              disabled={checking || totalPasswords === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-            >
-              {checking ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <ShieldAlert className="w-3.5 h-3.5" />
-              )}
-              {checking ? "Checking…" : "Breach Check"}
-            </button>
-            <button
-              onClick={() => setShowAddNote(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors cursor-pointer"
-            >
-              <FileText className="w-3.5 h-3.5" />
-              Note
-            </button>
-            <button
-              onClick={() => setShowAddFile(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 transition-colors cursor-pointer"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              File
-            </button>
-          </div>
-
-          <PasswordGrid
-            entries={filtered}
-            notes={filteredNotes}
-            files={filteredFiles}
-            page={page}
-            setPage={setPage}
-            folders={folders}
-            onEdit={editPassword}
-            onDelete={deletePassword}
-            onEditNote={editNote}
-            onDeleteNote={deleteNote}
-            onEditFile={editFile}
-            onDeleteFile={deleteFile}
-            onDownloadFile={downloadFile}
-            onAdd={() => setShowAdd(true)}
-            getBreachCount={getBreachCount}
-          />
-        </main>
-
-        <AddPasswordModal
-          open={showAdd}
-          onClose={() => setShowAdd(false)}
-          onSaved={() => {
-            setShowAdd(false);
-            fetchPasswords();
-          }}
-          folders={folders}
+        }
+        detailPanel={
+          selectedItem ? (
+            <DetailPanel
+              item={selectedItem}
+              onClose={clearSelection}
+              onEditPassword={handleEditPassword}
+              onDeletePassword={deletePassword}
+              onEditNote={handleEditNote}
+              onDeleteNote={deleteNote}
+              onEditFile={handleEditFile}
+              onDeleteFile={deleteFile}
+              onDownloadFile={handleDownloadFile}
+              folders={folders}
+              breachCount={
+                selectedItem.type === "password"
+                  ? getBreachCount(selectedItem.key, selectedItem.index)
+                  : undefined
+              }
+            />
+          ) : undefined
+        }
+        detailOpen={!!selectedItem}
+        onDetailClose={clearSelection}
+      >
+        <VaultItemList
+          items={filteredItems}
+          selectedId={selectedItem?.id ?? null}
+          onSelect={selectItem}
+          search={search}
+          onSearchChange={setSearch}
+          onOpenCommandPalette={() => setCmdOpen(true)}
+          getBreachCount={getBreachCount}
         />
+      </AppShell>
 
-        <AddNoteModal
-          open={showAddNote}
-          onClose={() => setShowAddNote(false)}
-          onSaved={() => {
-            setShowAddNote(false);
-            fetchPasswords();
-          }}
-          folders={folders}
-        />
+      <CommandPalette
+        open={cmdOpen}
+        onClose={() => setCmdOpen(false)}
+        items={allItems}
+        onSelectItem={(item) => {
+          selectItem(item);
+          setFolderFilter("all");
+          setSearch("");
+        }}
+        actions={cmdActions}
+      />
 
-        <AddFileModal
-          open={showAddFile}
-          onClose={() => setShowAddFile(false)}
-          onSaved={() => {
-            setShowAddFile(false);
-            fetchPasswords();
-          }}
-          folders={folders}
-        />
-
-        <GeneratePasswordModal
-          open={showGenerate}
-          onClose={() => setShowGenerate(false)}
-        />
-      </div>
+      <AddPasswordModal
+        open={showAdd}
+        onClose={() => setShowAdd(false)}
+        onSaved={() => { setShowAdd(false); fetchPasswords(); }}
+        folders={folders}
+      />
+      <AddNoteModal
+        open={showAddNote}
+        onClose={() => setShowAddNote(false)}
+        onSaved={() => { setShowAddNote(false); fetchPasswords(); }}
+        folders={folders}
+      />
+      <AddFileModal
+        open={showAddFile}
+        onClose={() => setShowAddFile(false)}
+        onSaved={() => { setShowAddFile(false); fetchPasswords(); }}
+        folders={folders}
+      />
+      <GeneratePasswordModal
+        open={showGenerate}
+        onClose={() => setShowGenerate(false)}
+      />
 
       <DragOverlay>
         {activeDrag && (
-          <div className="bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-3 shadow-2xl opacity-90 max-w-xs">
-            <div className="text-sm font-semibold text-zinc-100">
-              {activeDrag.website}
+          <div className="bg-surface-raised border border-border rounded-lg px-4 py-3 shadow-2xl opacity-90 max-w-xs">
+            <div className="text-sm font-semibold text-text-primary">{activeDrag.website}</div>
+            <div className="text-xs text-text-muted mt-0.5">
+              {activeDrag.entryType === "file"
+                ? "Secure File"
+                : activeDrag.username
+                ? activeDrag.username
+                : "Secure Note"}
             </div>
-            {activeDrag.entryType === "file" ? (
-              <div className="text-xs text-zinc-500 mt-0.5">
-                Secure File
-              </div>
-            ) : activeDrag.username ? (
-              <div className="text-xs text-zinc-500 mt-0.5">
-                {activeDrag.username}
-              </div>
-            ) : (
-              <div className="text-xs text-zinc-500 mt-0.5">
-                Secure Note
-              </div>
-            )}
           </div>
         )}
       </DragOverlay>

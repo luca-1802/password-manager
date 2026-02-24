@@ -178,14 +178,14 @@ export default function TwoFactorSetupModal({
 
   const backupCodesDisplay = (
     <div className="space-y-4">
-      <p className="text-sm text-zinc-400">
+      <p className="text-sm text-text-secondary">
         Save these backup codes in a safe place. Each code can only be used once
         if you lose access to your authenticator app.
       </p>
-      <div className="bg-zinc-800 rounded-lg p-4 grid grid-cols-2 gap-2">
+      <div className="bg-surface-hover rounded-lg p-4 grid grid-cols-2 gap-2">
         {backupCodes.map((c, i) => (
           <code key={i} className="text-sm font-mono">
-            <span className="text-zinc-300">{String(i + 1).padStart(2, "\u00A0")}. </span>
+            <span className="text-text-secondary">{String(i + 1).padStart(2, "\u00A0")}. </span>
             <ColoredPassword password={c} />
           </code>
         ))}
@@ -214,7 +214,7 @@ export default function TwoFactorSetupModal({
     >
       {step === "idle" && !enabled && (
         <div className="space-y-4">
-          <div className="flex items-center gap-3 text-zinc-400">
+          <div className="flex items-center gap-3 text-text-secondary">
             <ShieldOff className="w-5 h-5 shrink-0" />
             <p className="text-sm">
               2FA adds an extra layer of security by requiring a code from your
@@ -234,13 +234,13 @@ export default function TwoFactorSetupModal({
 
       {step === "idle" && enabled && (
         <div className="space-y-4">
-          <div className="flex items-center gap-3 text-green-500">
+          <div className="flex items-center gap-3 text-success">
             <ShieldCheck className="w-5 h-5 shrink-0" />
-            <p className="text-sm text-zinc-300">
-              Two-factor authentication is currently <span className="text-green-500 font-medium">enabled</span>.
+            <p className="text-sm text-text-secondary">
+              Two-factor authentication is currently <span className="text-success font-medium">enabled</span>.
             </p>
           </div>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-text-muted">
             {backupCodesRemaining} backup {backupCodesRemaining === 1 ? "code" : "codes"} remaining
           </p>
           <div className="flex gap-3">
@@ -265,7 +265,7 @@ export default function TwoFactorSetupModal({
 
       {step === "qr" && setupData && (
         <form onSubmit={handleVerifySetup} className="space-y-5">
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-text-secondary">
             Scan this QR code with your authenticator app, then enter the
             6-digit code to verify.
           </p>
@@ -277,18 +277,18 @@ export default function TwoFactorSetupModal({
               className="w-48 h-48 rounded-lg bg-white p-2"
             />
             <div className="text-center w-full">
-              <p className="text-xs text-zinc-500 mb-1.5">Or enter this key manually:</p>
+              <p className="text-xs text-text-muted mb-1.5">Or enter this key manually:</p>
               <div className="flex items-center justify-center gap-2">
-                <code className="text-sm font-mono bg-zinc-800 px-3 py-1.5 rounded select-all">
+                <code className="text-sm font-mono bg-surface-hover px-3 py-1.5 rounded select-all">
                   <ColoredPassword password={setupData.secret} />
                 </code>
                 <button
                   type="button"
                   onClick={copySecret}
-                  className="text-zinc-500 hover:text-zinc-300 transition-colors p-1.5 rounded-lg hover:bg-zinc-800"
+                  className="text-text-muted hover:text-text-primary transition-colors p-1.5 rounded-lg hover:bg-surface-hover"
                 >
                   {secretCopied ? (
-                    <Check className="w-4 h-4 text-green-500" />
+                    <Check className="w-4 h-4 text-success" />
                   ) : (
                     <Copy className="w-4 h-4" />
                   )}
@@ -312,7 +312,7 @@ export default function TwoFactorSetupModal({
 
       {step === "regenerate" && (
         <form onSubmit={handleRegenerate} className="space-y-4">
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-text-secondary">
             Enter your current authenticator code to generate new backup codes.
             This will invalidate all existing backup codes.
           </p>
@@ -340,7 +340,7 @@ export default function TwoFactorSetupModal({
 
       {step === "verify-disable" && (
         <form onSubmit={handleDisable} className="space-y-4">
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-text-secondary">
             {useBackup
               ? "Enter one of your backup codes to disable 2FA."
               : "Enter your current authenticator code to disable 2FA."}
@@ -389,7 +389,7 @@ export default function TwoFactorSetupModal({
               setCode("");
               setError("");
             }}
-            className="w-full text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+            className="w-full text-xs text-text-muted hover:text-text-primary transition-colors"
           >
             {useBackup ? "Use authenticator code" : "Use a backup code"}
           </button>

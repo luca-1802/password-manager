@@ -70,13 +70,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20, transition: { duration: 0.1 } }}
               transition={{ duration: 0.15, ease: "easeOut" }}
-              className={`flex items-center gap-3 px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg shadow-lg max-w-sm ${borderMap[t.type]}`}
+              className={`flex items-center gap-3 px-4 py-3 bg-surface-raised border border-border rounded-lg shadow-lg max-w-sm ${borderMap[t.type]}`}
             >
               {iconMap[t.type]}
-              <span className="text-sm text-zinc-300">{t.message}</span>
+              <span className="text-sm text-text-secondary">{t.message}</span>
               <button
                 onClick={() => dismiss(t.id)}
-                className="ml-auto text-zinc-600 hover:text-zinc-400 transition-colors shrink-0 p-0.5 rounded"
+                className="ml-auto text-text-muted hover:text-text-secondary transition-colors shrink-0 p-0.5 rounded"
               >
                 <X className="w-4 h-4" />
               </button>

@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Password Vault",
+  "version": "1.0.0",
+  "description": "Auto-fill and save credentials from your Password Vault",
+  "permissions": ["activeTab", "storage", "alarms"],
+  "host_permissions": [
+    "http://localhost:5000/*",
+    "http://127.0.0.1:5000/*"
+  ],
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

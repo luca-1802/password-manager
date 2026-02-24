@@ -36,7 +36,7 @@ export function useNotes(fetchPasswords: () => Promise<void>) {
       if (folder !== undefined) body.folder = folder;
       if (recovery_questions !== undefined) body.recovery_questions = recovery_questions;
       const res = await apiFetch(
-        `/notes/${encodeURIComponent(title)}/${index}`,
+        `/notes/${index}/${encodeURIComponent(title)}`,
         { method: "PUT", body }
       );
       if (res?.ok) await fetchPasswords();
@@ -48,7 +48,7 @@ export function useNotes(fetchPasswords: () => Promise<void>) {
   const deleteNote = useCallback(
     async (title: string, index: number) => {
       const res = await apiFetch(
-        `/notes/${encodeURIComponent(title)}/${index}`,
+        `/notes/${index}/${encodeURIComponent(title)}`,
         { method: "DELETE" }
       );
       if (res?.ok) await fetchPasswords();

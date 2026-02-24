@@ -44,12 +44,10 @@ def _aes_gcm_decrypt(key_raw, nonce_and_ct, aad):
     return AESGCM(key_raw).decrypt(nonce, ct, aad)
 
 def encrypt_file(key_raw, file_bytes):
-    """Encrypt file bytes using AES-256-GCM, returns FILE_MAGIC + nonce + ciphertext."""
     nonce_and_ct = _aes_gcm_encrypt(key_raw, file_bytes, FILE_MAGIC)
     return FILE_MAGIC + nonce_and_ct
 
 def decrypt_file(key_raw, file_data):
-    """Decrypt file data (FILE_MAGIC + nonce + ciphertext), returns plaintext bytes."""
     if len(file_data) < 4 + NONCE_SIZE + 16:
         raise VaultDecryptionError("File is too short or corrupted")
     if file_data[:4] != FILE_MAGIC:
@@ -286,7 +284,7 @@ def decrypt_export(password, file_data):
     except Exception:
         raise VaultDecryptionError("Wrong password or corrupted file")
 
-def generate_password(length=19, include_special=True):
+def generate_password(length=16, include_special=True):
     min_chars = 4 if include_special else 3
     if length < min_chars:
         length = min_chars
@@ -294,11 +292,6 @@ def generate_password(length=19, include_special=True):
     upper = string.ascii_uppercase
     digits = string.digits
     special = "!@#$%&*?=_+"
-
-    num_dashes = (length - 1) // 5
-    raw_length = length - num_dashes
-    if raw_length < min_chars:
-        raw_length = min_chars
 
     password = [
         secrets.choice(lower),
@@ -311,9 +304,7 @@ def generate_password(length=19, include_special=True):
         password.append(secrets.choice(special))
         alphabet += special
 
-    password += [secrets.choice(alphabet) for _ in range(raw_length - len(password))]
+    password += [secrets.choice(alphabet) for _ in range(length - len(password))]
     secrets.SystemRandom().shuffle(password)
 
-    raw = "".join(password)
-    chunks = [raw[i:i + 4] for i in range(0, len(raw), 4)]
-    return "-".join(chunks)
+    return "".join(password)

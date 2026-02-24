@@ -2,9 +2,11 @@ services:
   vault:
     build: .
     ports:
-      - "127.0.0.1:5000:5000"
+      - "5000:5000"
     volumes:
       - vault-data:/app/data
+    environment:
+      - SECURE_COOKIES=false
     restart: unless-stopped
     read_only: true
     tmpfs:

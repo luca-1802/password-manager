@@ -1,6 +1,6 @@
 import { getColoredPasswords } from "../../hooks/useColoredPasswords";
 
-const COLORS = ["#f97316", "#5eead4"] as const;
+const COLORS = ["#d4a843", "#5eead4"] as const;
 
 interface Props {
   password: string;

@@ -16,7 +16,6 @@ note_bp = Blueprint("notes", __name__)
 
 
 def _count_total_entries(passwords):
-    """Count all password entries, note entries, and file entries combined."""
     total = 0
     for key, value in passwords.items():
         if key == "_folders_meta":
@@ -126,9 +125,9 @@ def create_note():
     return jsonify({"success": True}), 201
 
 
-@note_bp.route("/<title>/<int:index>", methods=["PUT"])
+@note_bp.route("/<int:index>/<path:title>", methods=["PUT"])
 @require_auth
-def edit_note(title, index):
+def edit_note(index, title):
     data = request.get_json()
     if not data:
         return jsonify({"error": "No data provided"}), 400
@@ -205,9 +204,9 @@ def edit_note(title, index):
     return jsonify({"success": True})
 
 
-@note_bp.route("/<title>/<int:index>", methods=["DELETE"])
+@note_bp.route("/<int:index>/<path:title>", methods=["DELETE"])
 @require_auth
-def delete_note(title, index):
+def delete_note(index, title):
     title = title.lower()
     if not validate_website(title):
         return jsonify({"error": "Invalid note title"}), 400

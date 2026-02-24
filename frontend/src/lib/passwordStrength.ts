@@ -41,12 +41,7 @@ function scoreToLevel(score: number): StrengthLevel {
 }
 
 export function calculatePasswordStrength(password: string): StrengthResult {
-  // Score the password exactly as-is. Dashes in generated passwords (e.g.
-  // "aBc1-xYz2-qWeR") are part of the stored password and contribute to its
-  // strength. Do not strip them.
   const raw = password;
-
-  // Use spread to correctly count Unicode code points (not UTF-16 code units)
   const chars = [...raw];
   const charLen = chars.length;
 
@@ -54,10 +49,7 @@ export function calculatePasswordStrength(password: string): StrengthResult {
     return { level: 0, score: 0, ...STRENGTH_CONFIG[0] };
   }
 
-  // Length score: 0-40 pts (maxes at 20 chars)
   const lengthScore = Math.min(40, charLen * 2);
-
-  // Diversity score: 0-35 pts
   const hasLower   = /[a-z]/.test(raw);
   const hasUpper   = /[A-Z]/.test(raw);
   const hasDigit   = /[0-9]/.test(raw);
@@ -69,14 +61,12 @@ export function calculatePasswordStrength(password: string): StrengthResult {
     (hasDigit ? 8 : 0) +
     (hasSpecial ? 11 : 0);
 
-  // Entropy bonus: 0-25 pts
   const entropyPerChar = shannonEntropy(raw);
   const totalBitEntropy = entropyPerChar * charLen;
   const entropyBonus = Math.min(25, totalBitEntropy / 3);
 
   let score = lengthScore + diversityScore + entropyBonus;
 
-  // Penalties
   const uniqueChars = new Set(chars);
   if (uniqueChars.size === 1) {
     score = 0;

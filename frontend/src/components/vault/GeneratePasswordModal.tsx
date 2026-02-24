@@ -3,9 +3,9 @@ import { RefreshCw, Copy, Check } from "lucide-react";
 import { apiFetch } from "../../api";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
+import Switch from "../ui/Switch";
 import { useToast } from "../ui/Toast";
 import { useClipboard } from "../../hooks/useClipboard";
-import { cn } from "../../lib/utils";
 import ColoredPassword from "../ui/ColoredPassword";
 import PasswordStrengthIndicator from "../ui/PasswordStrengthIndicator";
 
@@ -15,7 +15,7 @@ interface Props {
 }
 
 export default function GeneratePasswordModal({ open, onClose }: Props) {
-  const [length, setLength] = useState(19);
+  const [length, setLength] = useState(16);
   const [password, setPassword] = useState("");
   const [generating, setGenerating] = useState(false);
   const [includeSpecial, setIncludeSpecial] = useState(true);
@@ -45,10 +45,10 @@ export default function GeneratePasswordModal({ open, onClose }: Props) {
       <div className="space-y-5">
         <div>
           <div className="flex items-center justify-between mb-3">
-            <label className="text-sm font-medium text-zinc-400">
+            <label className="text-sm font-medium text-text-secondary">
               Length
             </label>
-            <span className="text-sm font-mono font-bold text-zinc-200">
+            <span className="text-sm font-mono font-bold text-text-primary">
               {length}
             </span>
           </div>
@@ -61,36 +61,22 @@ export default function GeneratePasswordModal({ open, onClose }: Props) {
             className="w-full"
           />
           <div className="flex justify-between mt-1.5">
-            <span className="text-[11px] text-zinc-600">4</span>
-            <span className="text-[11px] text-zinc-600">64</span>
+            <span className="text-[11px] text-text-muted">4</span>
+            <span className="text-[11px] text-text-muted">64</span>
           </div>
         </div>
 
         <div className="flex items-center justify-between">
           <label
             htmlFor="include-special"
-            className="text-sm font-medium text-zinc-400"
+            className="text-sm font-medium text-text-secondary"
           >
             Special characters
           </label>
-          <button
-            id="include-special"
-            type="button"
-            role="switch"
-            aria-checked={includeSpecial}
-            onClick={() => setIncludeSpecial(!includeSpecial)}
-            className={cn(
-              "relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200",
-              includeSpecial ? "bg-orange-500" : "bg-zinc-700"
-            )}
-          >
-            <span
-              className={cn(
-                "inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform duration-200",
-                includeSpecial ? "translate-x-[18px]" : "translate-x-[3px]"
-              )}
-            />
-          </button>
+          <Switch
+            checked={includeSpecial}
+            onChange={() => setIncludeSpecial(!includeSpecial)}
+          />
         </div>
 
         <Button
@@ -103,7 +89,7 @@ export default function GeneratePasswordModal({ open, onClose }: Props) {
         </Button>
 
         {password && (
-          <div className="bg-zinc-950 border border-zinc-800 rounded-lg p-4">
+          <div className="bg-surface-sunken border border-border rounded-lg p-4">
             <code className="block text-sm font-mono break-all leading-relaxed">
               <ColoredPassword password={password} />
             </code>

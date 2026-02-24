@@ -18,7 +18,7 @@ cd frontend && npm install && npm run build && cd ..
 python app.py
 ```
 
-Open `http://127.0.0.1:5000`. The server only binds to localhost.
+Open `http://<your-local-ip>:5000`. The server is accessible on your local network. Find your local IP with `ipconfig` (Windows) or `ifconfig` / `ip a` (Linux/macOS).
 
 ### CLI
 
@@ -66,7 +66,7 @@ Encrypted exports use AES-256-GCM with an independent Argon2id-derived key. Unen
 | 2FA | Optional TOTP with server-side rate limiting and replay protection |
 | Inactivity | Session exits after 5 minutes of inactivity |
 | Web session | Server-side only, AES-256-GCM encrypted values, HttpOnly + SameSite=Strict + Secure cookies |
-| Network | Binds to 127.0.0.1 (localhost only, including Docker) |
+| Network | Accessible on local network; not exposed to the internet unless ports are forwarded |
 | HTTP headers | CSP, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy, COOP/CORP, no-cache |
 | Docker | Non-root user, read-only filesystem, no-new-privileges |
 | Encrypted export | AES-256-GCM with independent Argon2id salt |

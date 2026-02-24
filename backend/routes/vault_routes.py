@@ -22,7 +22,7 @@ MAX_NOTE_CONTENT_LENGTH = 50000
 MAX_RECOVERY_QUESTIONS = 10
 MAX_RECOVERY_Q_LENGTH = 500
 MAX_NOTES_PER_TITLE = 100
-MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+MAX_FILE_SIZE = 5 * 1024 * 1024
 MAX_FILES = 100
 MAX_FILES_PER_LABEL = 100
 MAX_FILE_DESCRIPTION_LENGTH = 1000
@@ -30,6 +30,9 @@ MAX_FILE_DESCRIPTION_LENGTH = 1000
 def require_auth(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        from flask import g
+        if getattr(g, 'is_token_auth', False):
+            return f(*args, **kwargs)
         if not session.get("authenticated") or session.get("pending_2fa"):
             return jsonify({"error": "Not authenticated"}), 401
         return f(*args, **kwargs)
@@ -42,7 +45,7 @@ def validate_website(website):
         return False
     if website.lower() in RESERVED_KEYS:
         return False
-    if not re.match(r'^[\w\s.\-]+$', website):
+    if not re.match(r'^[\w\s.\-:/@?#%&=+~!,;()\[\]\'*]+$', website):
         return False
     return True
 
@@ -119,6 +122,9 @@ def count_existing_folders(passwords):
     return folders
 
 def get_session_material():
+    from flask import g
+    if getattr(g, 'is_token_auth', False):
+        return g.token_auth["vault_key"], g.token_auth["salt"], current_app.config["VAULT_FILE"]
     key_raw = _decrypt_session_value(session["vault_key"])
     salt = _decrypt_session_value(session["salt"])
     vault_path = current_app.config["VAULT_FILE"]
@@ -152,15 +158,17 @@ def get_all():
 @require_auth
 def add_entry():
     data = request.get_json()
-    if not data or not data.get("website") or not data.get("username"):
-        return jsonify({"error": "Website and username are required"}), 400
-    if not isinstance(data.get("website"), str) or not isinstance(data.get("username"), str):
-        return jsonify({"error": "Website and username must be strings"}), 400
+    if not data or not data.get("website"):
+        return jsonify({"error": "Website is required"}), 400
+    if not isinstance(data.get("website"), str):
+        return jsonify({"error": "Website must be a string"}), 400
+    if data.get("username") is not None and not isinstance(data["username"], str):
+        return jsonify({"error": "Username must be a string"}), 400
     if data.get("password") is not None and not isinstance(data["password"], str):
         return jsonify({"error": "Password must be a string"}), 400
 
     website = data["website"].strip().lower()
-    username = data["username"].strip()
+    username = data.get("username", "").strip()
     password = data.get("password") or generate_password()
     folder = data.get("folder")
     if folder is not None:
@@ -170,8 +178,8 @@ def add_entry():
 
     if not validate_website(website):
         return jsonify({"error": "Invalid website name"}), 400
-    if not username or len(username) > MAX_USERNAME_LENGTH:
-        return jsonify({"error": f"Username must be 1-{MAX_USERNAME_LENGTH} characters"}), 400
+    if username and len(username) > MAX_USERNAME_LENGTH:
+        return jsonify({"error": f"Username must be at most {MAX_USERNAME_LENGTH} characters"}), 400
     if len(password) > MAX_PASSWORD_LENGTH:
         return jsonify({"error": f"Password must be at most {MAX_PASSWORD_LENGTH} characters"}), 400
     folder_err = validate_folder(folder)
@@ -228,7 +236,16 @@ def add_entry():
             passwords[website] = normalize_entries(passwords[website])
             if len(passwords[website]) >= MAX_ENTRIES_PER_SITE:
                 return jsonify({"error": "Too many entries for this website"}), 400
-            entry = {"username": username, "password": password}
+
+            # Check for duplicate entry (same username and password)
+            for existing in passwords[website]:
+                existing_username = existing.get("username", "")
+                if existing_username == username and existing.get("password") == password:
+                    return jsonify({"error": "This credential already exists in your vault"}), 409
+
+            entry = {"password": password}
+            if username:
+                entry["username"] = username
             if folder:
                 entry["folder"] = folder
             if notes:
@@ -243,9 +260,9 @@ def add_entry():
 
     return jsonify({"success": True, "password": password}), 201
 
-@vault_bp.route("/<website>/<int:index>", methods=["DELETE"])
+@vault_bp.route("/<int:index>/<path:website>", methods=["DELETE"])
 @require_auth
-def delete_entry(website, index):
+def delete_entry(index, website):
     website = website.lower()
     if not validate_website(website):
         return jsonify({"error": "Invalid website name"}), 400
@@ -281,9 +298,9 @@ def delete_entry(website, index):
 
     return jsonify({"success": True})
 
-@vault_bp.route("/<website>/<int:index>", methods=["PUT"])
+@vault_bp.route("/<int:index>/<path:website>", methods=["PUT"])
 @require_auth
-def edit_entry(website, index):
+def edit_entry(index, website):
     data = request.get_json()
     if not data:
         return jsonify({"error": "No data provided"}), 400
@@ -314,9 +331,12 @@ def edit_entry(website, index):
                 if not isinstance(data["username"], str):
                     return jsonify({"error": "Username must be a string"}), 400
                 username = data["username"].strip()
-                if not username or len(username) > MAX_USERNAME_LENGTH:
-                    return jsonify({"error": f"Username must be 1-{MAX_USERNAME_LENGTH} characters"}), 400
-                entries[index]["username"] = username
+                if len(username) > MAX_USERNAME_LENGTH:
+                    return jsonify({"error": f"Username must be at most {MAX_USERNAME_LENGTH} characters"}), 400
+                if username:
+                    entries[index]["username"] = username
+                else:
+                    entries[index].pop("username", None)
             if "password" in data:
                 if not isinstance(data["password"], str):
                     return jsonify({"error": "Password must be a string"}), 400
