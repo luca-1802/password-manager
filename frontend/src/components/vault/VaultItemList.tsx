@@ -11,6 +11,7 @@ interface VaultItemListProps {
   onSearchChange: (value: string) => void;
   onOpenCommandPalette: () => void;
   getBreachCount: (website: string, index: number) => number | null;
+  onAdd: () => void;
 }
 
 export default function VaultItemList({
@@ -21,6 +22,7 @@ export default function VaultItemList({
   onSearchChange,
   onOpenCommandPalette,
   getBreachCount,
+  onAdd,
 }: VaultItemListProps) {
   return (
     <div className="h-full flex flex-col">
@@ -45,7 +47,7 @@ export default function VaultItemList({
 
       <div className="flex-1 overflow-y-auto">
         {items.length === 0 ? (
-          <EmptyState onAdd={() => {}} />
+          <EmptyState onAdd={onAdd} />
         ) : (
           items.map((item) => (
             <VaultItemRow

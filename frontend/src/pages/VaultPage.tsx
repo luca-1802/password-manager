@@ -319,6 +319,7 @@ export default function VaultPage({ onLogout }: Props) {
           onSearchChange={setSearch}
           onOpenCommandPalette={() => setCmdOpen(true)}
           getBreachCount={getBreachCount}
+          onAdd={handleAddMenu}
         />
       </AppShell>
 
