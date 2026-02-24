@@ -5,12 +5,18 @@ export interface RecoveryQuestion {
   answer: string;
 }
 
+export interface PasswordHistoryEntry {
+  password: string;
+  changed_at: string;
+}
+
 export interface Credential {
   username: string;
   password: string;
   folder?: string | null;
   notes?: string | null;
   recovery_questions?: RecoveryQuestion[] | null;
+  history?: PasswordHistoryEntry[] | null;
 }
 
 export type PasswordMap = Record<string, Credential[]>;

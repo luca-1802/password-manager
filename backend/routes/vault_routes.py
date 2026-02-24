@@ -4,6 +4,7 @@ from functools import wraps
 from filelock import FileLock
 from flask import Blueprint, request, jsonify, session, current_app
 from backend.vault import load_passwords_with_key, save_passwords_with_key, generate_password, normalize_entries
+from datetime import datetime, timezone
 from backend.routes.auth_routes import _decrypt_session_value
 
 logger = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ MAX_FILE_SIZE = 5 * 1024 * 1024
 MAX_FILES = 100
 MAX_FILES_PER_LABEL = 100
 MAX_FILE_DESCRIPTION_LENGTH = 1000
+MAX_PASSWORD_HISTORY = 20
 
 def require_auth(f):
     @wraps(f)
@@ -345,6 +347,16 @@ def edit_entry(index, website):
                     return jsonify({"error": "Password cannot be empty"}), 400
                 if len(password) > MAX_PASSWORD_LENGTH:
                     return jsonify({"error": f"Password must be at most {MAX_PASSWORD_LENGTH} characters"}), 400
+                old_password = entries[index].get("password", "")
+                if password != old_password:
+                    history = entries[index].get("history", [])
+                    history.append({
+                        "password": old_password,
+                        "changed_at": datetime.now(timezone.utc).isoformat(),
+                    })
+                    if len(history) > MAX_PASSWORD_HISTORY:
+                        history = history[-MAX_PASSWORD_HISTORY:]
+                    entries[index]["history"] = history
                 entries[index]["password"] = password
             if "folder" in data:
                 folder = data["folder"]
@@ -390,3 +402,25 @@ def edit_entry(index, website):
         return jsonify({"error": "Failed to decrypt vault. Please log in again."}), 500
 
     return jsonify({"success": True})
+
+@vault_bp.route("/<int:index>/<path:website>/history", methods=["GET"])
+@require_auth
+def get_password_history(index, website):
+    website = website.lower()
+    if not validate_website(website):
+        return jsonify({"error": "Invalid website name"}), 400
+
+    _, _, passwords = get_vault_data()
+    if passwords is None:
+        return jsonify({"error": "Failed to decrypt vault. Please log in again."}), 500
+
+    if website not in passwords:
+        return jsonify({"error": "Website not found"}), 404
+
+    entries = normalize_entries(passwords[website])
+
+    if index < 0 or index >= len(entries):
+        return jsonify({"error": "Invalid index"}), 400
+
+    history = entries[index].get("history", [])
+    return jsonify({"history": history})
