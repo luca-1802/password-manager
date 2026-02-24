@@ -51,13 +51,14 @@ export default function AddPasswordModal({ open, onClose, onSaved, folders }: Pr
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!website || !username) {
-      setError("Website and username are required");
+    if (!website) {
+      setError("Website is required");
       return;
     }
 
     setLoading(true);
-    const body: Record<string, unknown> = { website, username };
+    const body: Record<string, unknown> = { website };
+    if (username.trim()) body.username = username;
     if (password) body.password = password;
     const trimmedFolder = folder.trim();
     if (trimmedFolder) body.folder = trimmedFolder;
@@ -115,7 +116,7 @@ export default function AddPasswordModal({ open, onClose, onSaved, folders }: Pr
           autoFocus
         />
         <Input
-          placeholder="Username"
+          placeholder="Username (optional)"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
         />

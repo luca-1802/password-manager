@@ -1,0 +1,208 @@
+.pv-dropdown {
+  position: fixed;
+  z-index: 2147483647;
+  background: #131316;
+  border: 1px solid #23232a;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  max-height: 280px;
+  overflow-y: auto;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: #f0ece4;
+  animation: pv-dropdown-in 0.12s ease-out;
+}
+
+.pv-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+.pv-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+.pv-dropdown::-webkit-scrollbar-thumb {
+  background: #23232a;
+  border-radius: 3px;
+}
+
+@keyframes pv-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pv-dropdown-header {
+  padding: 8px 12px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #5c5549;
+  border-bottom: 1px solid #1e1e24;
+}
+
+.pv-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.pv-dropdown-item:hover {
+  background-color: #19191e;
+}
+
+.pv-dropdown-item:last-child {
+  border-radius: 0 0 10px 10px;
+}
+
+.pv-dropdown-user {
+  font-weight: 500;
+  color: #f0ece4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.pv-dropdown-hint {
+  font-size: 11px;
+  color: #d4a843;
+  font-weight: 500;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.pv-dropdown-empty {
+  padding: 16px 12px;
+  text-align: center;
+  color: #5c5549;
+  font-size: 12px;
+}
+
+.pv-save-banner {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #131316;
+  border: 1px solid #23232a;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: #f0ece4;
+  max-width: 420px;
+  animation: pv-banner-in 0.25s ease-out;
+}
+
+.pv-save-banner.pv-banner-hiding {
+  animation: pv-banner-out 0.2s ease-in forwards;
+}
+
+@keyframes pv-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pv-banner-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+}
+
+.pv-save-banner-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.pv-save-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.pv-save-banner-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: #f0ece4;
+  margin-bottom: 2px;
+}
+
+.pv-save-banner-detail {
+  font-size: 12px;
+  color: #9a9489;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pv-save-banner-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pv-save-btn-primary {
+  padding: 6px 16px;
+  background: #d4a843;
+  color: #0a0a0b;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  font-family: inherit;
+}
+
+.pv-save-btn-primary:hover:not(:disabled) {
+  background: #c2952e;
+}
+
+.pv-save-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pv-save-btn-secondary {
+  padding: 6px 12px;
+  background: #19191e;
+  color: #9a9489;
+  border: 1px solid #23232a;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  font-family: inherit;
+}
+
+.pv-save-btn-secondary:hover {
+  background: #1c1c20;
+  color: #f0ece4;
+}

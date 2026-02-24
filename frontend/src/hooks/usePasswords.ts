@@ -60,7 +60,7 @@ export function usePasswords() {
       if (notes !== undefined) body.notes = notes;
       if (recovery_questions !== undefined) body.recovery_questions = recovery_questions;
       const res = await apiFetch(
-        `/passwords/${encodeURIComponent(website)}/${index}`,
+        `/passwords/${index}/${encodeURIComponent(website)}`,
         { method: "PUT", body }
       );
       if (res?.ok) await fetchPasswords();
@@ -72,7 +72,7 @@ export function usePasswords() {
   const deletePassword = useCallback(
     async (website: string, index: number) => {
       const res = await apiFetch(
-        `/passwords/${encodeURIComponent(website)}/${index}`,
+        `/passwords/${index}/${encodeURIComponent(website)}`,
         { method: "DELETE" }
       );
       if (res?.ok) await fetchPasswords();

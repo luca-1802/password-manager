@@ -30,7 +30,7 @@ export function useFiles(fetchPasswords: () => Promise<void>) {
       if (description !== undefined) body.description = description;
       if (folder !== undefined) body.folder = folder;
       const res = await apiFetch(
-        `/files/${encodeURIComponent(label)}/${index}`,
+        `/files/${index}/${encodeURIComponent(label)}`,
         { method: "PUT", body }
       );
       if (res?.ok) await fetchPasswords();
@@ -42,7 +42,7 @@ export function useFiles(fetchPasswords: () => Promise<void>) {
   const deleteFile = useCallback(
     async (label: string, index: number) => {
       const res = await apiFetch(
-        `/files/${encodeURIComponent(label)}/${index}`,
+        `/files/${index}/${encodeURIComponent(label)}`,
         { method: "DELETE" }
       );
       if (res?.ok) await fetchPasswords();
@@ -54,7 +54,7 @@ export function useFiles(fetchPasswords: () => Promise<void>) {
   const downloadFile = useCallback(
     async (label: string, index: number, originalName: string) => {
       const res = await apiFetchRaw(
-        `/files/${encodeURIComponent(label)}/${index}/download`
+        `/files/${index}/${encodeURIComponent(label)}/download`
       );
       if (!res || !res.ok) return false;
       const blob = await res.blob();

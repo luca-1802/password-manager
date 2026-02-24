@@ -184,9 +184,9 @@ def upload_file():
     return jsonify({"success": True, "file_id": file_id}), 201
 
 
-@file_bp.route("/<label>/<int:index>/download", methods=["GET"])
+@file_bp.route("/<int:index>/<path:label>/download", methods=["GET"])
 @require_auth
-def download_file(label, index):
+def download_file(index, label):
     label = label.lower()
     if not validate_website(label):
         return jsonify({"error": "Invalid label name"}), 400
@@ -250,9 +250,9 @@ def download_file(label, index):
         return jsonify({"error": "Failed to download file"}), 500
 
 
-@file_bp.route("/<label>/<int:index>", methods=["PUT"])
+@file_bp.route("/<int:index>/<path:label>", methods=["PUT"])
 @require_auth
-def edit_file(label, index):
+def edit_file(index, label):
     data = request.get_json()
     if not data:
         return jsonify({"error": "No data provided"}), 400
@@ -319,9 +319,9 @@ def edit_file(label, index):
     return jsonify({"success": True})
 
 
-@file_bp.route("/<label>/<int:index>", methods=["DELETE"])
+@file_bp.route("/<int:index>/<path:label>", methods=["DELETE"])
 @require_auth
-def delete_file(label, index):
+def delete_file(index, label):
     label = label.lower()
     if not validate_website(label):
         return jsonify({"error": "Invalid label name"}), 400
