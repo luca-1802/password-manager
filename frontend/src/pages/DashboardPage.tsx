@@ -1,18 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import type { FolderFilter } from "../types";
 import { usePasswords } from "../hooks/usePasswords";
-import { useFolders } from "../hooks/useFolders";
 import { useBreachCheck } from "../hooks/useBreachCheck";
-import { useSidebarState } from "../hooks/useSidebarState";
 import { useInactivityTimeout } from "../hooks/useInactivityTimeout";
 import { useAutoLockOnHidden } from "../hooks/useAutoLockOnHidden";
 import { useVisibilityLock } from "../hooks/useVisibilityLock";
 import { useToast } from "../components/ui/Toast";
 import AppShell from "../components/layout/AppShell";
-import Sidebar from "../components/layout/Sidebar";
+import TopNav from "../components/layout/TopNav";
+import BottomNav from "../components/layout/BottomNav";
 import SecurityDashboard from "../components/dashboard/SecurityDashboard";
-import GeneratePasswordModal from "../components/vault/GeneratePasswordModal";
 
 interface Props {
   onLogout: () => void;
@@ -20,12 +17,9 @@ interface Props {
 
 export default function DashboardPage({ onLogout }: Props) {
   const navigate = useNavigate();
-  const { passwords, notes, files, serverFolders, fetchPasswords } = usePasswords();
-  const { folders, createFolder, renameFolder, deleteFolder } = useFolders(serverFolders);
+  const { passwords, fetchPasswords } = usePasswords();
   const { breachResults, checking, checkBreaches } = useBreachCheck();
-  const { collapsed, toggleCollapsed } = useSidebarState();
   const { toast } = useToast();
-  const [showGenerate, setShowGenerate] = useState(false);
 
   useInactivityTimeout(onLogout);
   const { autoLockOnHidden } = useAutoLockOnHidden();
@@ -43,7 +37,7 @@ export default function DashboardPage({ onLogout }: Props) {
   const handleNavigate = (page: string) => {
     if (page === "vault") navigate("/vault");
     else if (page === "settings") navigate("/settings");
-    else if (page === "generator") setShowGenerate(true);
+    else if (page === "generator") navigate("/generator");
   };
 
   const handleCheckBreaches = async () => {
@@ -62,48 +56,20 @@ export default function DashboardPage({ onLogout }: Props) {
     return res;
   };
 
-  const handleCreateFolder = useCallback(
-    async (name: string) => {
-      const res = await createFolder(name);
-      if (res?.ok) await fetchPasswords();
-      return res;
-    },
-    [createFolder, fetchPasswords]
-  );
-  const handleRenameFolder = useCallback(
-    async (old: string, newN: string) => {
-      const res = await renameFolder(old, newN);
-      if (res?.ok) await fetchPasswords();
-      return res;
-    },
-    [renameFolder, fetchPasswords]
-  );
-  const handleDeleteFolder = useCallback(
-    async (name: string) => {
-      const res = await deleteFolder(name);
-      if (res?.ok) await fetchPasswords();
-      return res;
-    },
-    [deleteFolder, fetchPasswords]
-  );
-
   return (
     <AppShell
-      sidebar={
-        <Sidebar
-          collapsed={collapsed}
-          onToggleCollapse={toggleCollapsed}
-          folders={folders}
-          activeFolder={"all" as FolderFilter}
-          onFolderChange={() => navigate("/vault")}
-          onCreateFolder={handleCreateFolder}
-          onRenameFolder={handleRenameFolder}
-          onDeleteFolder={handleDeleteFolder}
+      topNav={
+        <TopNav
           activePage="dashboard"
           onNavigate={handleNavigate}
           onLock={onLogout}
           onSearch={() => navigate("/vault")}
-          onAdd={() => navigate("/vault", { state: { openAddModal: true } })}
+        />
+      }
+      bottomNav={
+        <BottomNav
+          activePage="dashboard"
+          onNavigate={handleNavigate}
         />
       }
     >
@@ -116,10 +82,6 @@ export default function DashboardPage({ onLogout }: Props) {
         onNavigateToItem={(website, index) =>
           navigate("/vault", { state: { selectItem: { website, index } } })
         }
-      />
-      <GeneratePasswordModal
-        open={showGenerate}
-        onClose={() => setShowGenerate(false)}
       />
     </AppShell>
   );

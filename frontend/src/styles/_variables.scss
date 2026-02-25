@@ -1,0 +1,23 @@
+$ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+$ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+$ease-smooth: cubic-bezier(0.25, 0.1, 0.25, 1);
+$ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+
+$duration-instant: 100ms;
+$duration-fast: 150ms;
+$duration-normal: 250ms;
+$duration-slow: 400ms;
+$duration-slower: 600ms;
+
+$shadow-glow-sm: 0 0 8px 0;
+$shadow-glow-md: 0 0 16px 0;
+$shadow-glow-lg: 0 0 32px 0;
+
+$ripple-duration: 600ms;
+$ripple-scale: 2.5;
+
+$gradient-border-speed: 3s;
+
+$skeleton-duration: 1.8s;
+$skeleton-base: var(--color-surface-sunken);
+$skeleton-shine: var(--color-surface-hover);

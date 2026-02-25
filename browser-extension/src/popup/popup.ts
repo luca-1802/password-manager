@@ -483,5 +483,4 @@ async function init(): Promise<void> {
 
 init();
 
-// Re-check connection status every 15 seconds
 setInterval(checkConnection, 15000);

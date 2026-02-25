@@ -1,5 +1,6 @@
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { forwardRef, useRef, useCallback, type ButtonHTMLAttributes, type ReactNode, type MouseEvent } from "react";
 import { cn } from "../../lib/utils";
+import styles from "../../styles/effects.module.scss";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "danger" | "accent-ghost";
@@ -34,27 +35,64 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       loading,
       children,
       disabled,
+      onMouseDown,
       ...props
     },
     ref
   ) => {
+    const btnRef = useRef<HTMLButtonElement | null>(null);
+
+    const handleMouseDown = useCallback(
+      (e: MouseEvent<HTMLButtonElement>) => {
+        const el = btnRef.current;
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          el.style.setProperty("--ripple-x", `${e.clientX - rect.left}px`);
+          el.style.setProperty("--ripple-y", `${e.clientY - rect.top}px`);
+          el.classList.remove("rippling");
+
+          void el.offsetWidth;
+          el.classList.add("rippling");
+          const cleanup = () => {
+            el.classList.remove("rippling");
+            el.removeEventListener("animationend", cleanup);
+          };
+          el.addEventListener("animationend", cleanup);
+        }
+        onMouseDown?.(e);
+      },
+      [onMouseDown]
+    );
+
+    const setRef = useCallback(
+      (node: HTMLButtonElement | null) => {
+        btnRef.current = node;
+        if (typeof ref === "function") ref(node);
+        else if (ref) ref.current = node;
+      },
+      [ref]
+    );
+
     return (
       <button
-        ref={ref}
+        ref={setRef}
         className={cn(
-          "inline-flex items-center justify-center gap-2 font-medium rounded-lg cursor-pointer transition-colors duration-150",
+          "inline-flex items-center justify-center gap-2 font-medium rounded-lg cursor-pointer transition-all duration-150",
           "disabled:opacity-50 disabled:cursor-not-allowed",
+          "active:scale-[0.97]",
           variants[variant],
           sizes[size],
+          styles.rippleBtn,
           className
         )}
         disabled={disabled || loading}
+        onMouseDown={handleMouseDown}
         {...props}
       >
         {loading ? (
-          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" aria-hidden="true" />
         ) : icon ? (
-          icon
+          <span aria-hidden="true">{icon}</span>
         ) : null}
         <span className="flex items-center gap-2">{children}</span>
       </button>

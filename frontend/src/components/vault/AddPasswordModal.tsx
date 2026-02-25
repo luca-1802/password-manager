@@ -1,4 +1,4 @@
-import { useState, useMemo, type FormEvent } from "react";
+import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { Wand2, Eye, EyeOff, FolderOpen, Plus } from "lucide-react";
 import { apiFetch } from "../../api";
 import Modal from "../ui/Modal";
@@ -17,9 +17,10 @@ interface Props {
   onClose: () => void;
   onSaved: () => void;
   folders: string[];
+  defaultFolder?: string;
 }
 
-export default function AddPasswordModal({ open, onClose, onSaved, folders }: Props) {
+export default function AddPasswordModal({ open, onClose, onSaved, folders, defaultFolder }: Props) {
   const [website, setWebsite] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -32,6 +33,10 @@ export default function AddPasswordModal({ open, onClose, onSaved, folders }: Pr
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const { copy } = useClipboard();
+
+  useEffect(() => {
+    if (open && defaultFolder) setFolder(defaultFolder);
+  }, [open, defaultFolder]);
 
   const folderOptions = useMemo(() => [
     { value: "", label: "None" },

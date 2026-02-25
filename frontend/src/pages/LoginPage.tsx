@@ -22,7 +22,7 @@ const slideUp = {
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.3, delay: 0.06 * i, ease: "easeOut" },
+    transition: { duration: 0.3, delay: 0.06 * i, ease: "easeOut" as const },
   }),
 };
 

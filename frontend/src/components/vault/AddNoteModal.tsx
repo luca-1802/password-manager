@@ -1,4 +1,4 @@
-import { useState, useMemo, type FormEvent } from "react";
+import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { FolderOpen, Plus } from "lucide-react";
 import { apiFetch } from "../../api";
 import Modal from "../ui/Modal";
@@ -14,9 +14,10 @@ interface Props {
   onClose: () => void;
   onSaved: () => void;
   folders: string[];
+  defaultFolder?: string;
 }
 
-export default function AddNoteModal({ open, onClose, onSaved, folders }: Props) {
+export default function AddNoteModal({ open, onClose, onSaved, folders, defaultFolder }: Props) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [folder, setFolder] = useState("");
@@ -25,6 +26,10 @@ export default function AddNoteModal({ open, onClose, onSaved, folders }: Props)
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (open && defaultFolder) setFolder(defaultFolder);
+  }, [open, defaultFolder]);
 
   const folderOptions = useMemo(() => [
     { value: "", label: "None" },

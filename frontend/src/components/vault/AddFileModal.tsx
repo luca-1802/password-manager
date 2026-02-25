@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, type FormEvent, type DragEvent } from "react";
+import { useState, useEffect, useMemo, useRef, type FormEvent, type DragEvent } from "react";
 import { Upload, FolderOpen, Plus } from "lucide-react";
 import { apiUploadFileWithFields } from "../../api";
 import Modal from "../ui/Modal";
@@ -12,6 +12,7 @@ interface Props {
   onClose: () => void;
   onSaved: () => void;
   folders: string[];
+  defaultFolder?: string;
 }
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -22,7 +23,7 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function AddFileModal({ open, onClose, onSaved, folders }: Props) {
+export default function AddFileModal({ open, onClose, onSaved, folders, defaultFolder }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [label, setLabel] = useState("");
   const [description, setDescription] = useState("");
@@ -33,6 +34,10 @@ export default function AddFileModal({ open, onClose, onSaved, folders }: Props)
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (open && defaultFolder) setFolder(defaultFolder);
+  }, [open, defaultFolder]);
 
   const folderOptions = useMemo(() => [
     { value: "", label: "None" },

@@ -1,11 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Shield, Monitor, Upload, Download, Palette, KeyRound, Sun, Moon, Rows3, Type } from "lucide-react";
 import { apiFetch } from "../api";
 import type { TotpStatusResponse } from "../types";
 import { usePasswords } from "../hooks/usePasswords";
 import { useFolders } from "../hooks/useFolders";
-import { useSidebarState } from "../hooks/useSidebarState";
 import { useInactivityTimeout } from "../hooks/useInactivityTimeout";
 import { useColoredPasswords } from "../hooks/useColoredPasswords";
 import { useAutoLockOnHidden } from "../hooks/useAutoLockOnHidden";
@@ -18,12 +17,12 @@ import { useTheme } from "../theme/ThemeProvider";
 import { ACCENT_PRESETS } from "../theme/presets";
 import type { AccentColorName } from "../theme/types";
 import AppShell from "../components/layout/AppShell";
-import Sidebar from "../components/layout/Sidebar";
+import TopNav from "../components/layout/TopNav";
+import BottomNav from "../components/layout/BottomNav";
 import TwoFactorSetupModal from "../components/vault/TwoFactorSetupModal";
 import ImportModal from "../components/vault/ImportModal";
 import ExportModal from "../components/vault/ExportModal";
 import ChangePasswordModal from "../components/vault/ChangePasswordModal";
-import GeneratePasswordModal from "../components/vault/GeneratePasswordModal";
 
 const themeModeOptions: SelectOption[] = [
   { value: "light", label: "Light" },
@@ -51,9 +50,8 @@ interface Props {
 
 export default function SettingsPage({ onLogout }: Props) {
   const navigate = useNavigate();
-  const { passwords, notes, files, serverFolders, fetchPasswords } = usePasswords();
-  const { folders, createFolder, renameFolder, deleteFolder } = useFolders(serverFolders);
-  const { collapsed, toggleCollapsed } = useSidebarState();
+  const { serverFolders, fetchPasswords } = usePasswords();
+  const { folders } = useFolders(serverFolders);
 
   const { coloredPasswords, toggleColoredPasswords } = useColoredPasswords();
   const {
@@ -66,7 +64,6 @@ export default function SettingsPage({ onLogout }: Props) {
   const [showImport, setShowImport] = useState(false);
   const [show2FA, setShow2FA] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const [showGenerate, setShowGenerate] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [backupCodesRemaining, setBackupCodesRemaining] = useState(0);
 
@@ -90,69 +87,47 @@ export default function SettingsPage({ onLogout }: Props) {
   const handleNavigate = (page: string) => {
     if (page === "vault") navigate("/vault");
     else if (page === "dashboard") navigate("/dashboard");
-    else if (page === "generator") setShowGenerate(true);
+    else if (page === "generator") navigate("/generator");
   };
-
-  const handleCreateFolder = useCallback(
-    async (name: string) => {
-      await createFolder(name);
-      await fetchPasswords();
-    },
-    [createFolder, fetchPasswords]
-  );
-
-  const handleRenameFolder = useCallback(
-    async (oldName: string, newName: string) => {
-      await renameFolder(oldName, newName);
-      await fetchPasswords();
-    },
-    [renameFolder, fetchPasswords]
-  );
-
-  const handleDeleteFolder = useCallback(
-    async (name: string) => {
-      await deleteFolder(name);
-      await fetchPasswords();
-    },
-    [deleteFolder, fetchPasswords]
-  );
 
   return (
     <AppShell
-      sidebar={
-        <Sidebar
-          collapsed={collapsed}
-          onToggleCollapse={toggleCollapsed}
-          folders={folders}
-          activeFolder={"all"}
-          onFolderChange={() => navigate("/vault")}
-          onCreateFolder={handleCreateFolder}
-          onRenameFolder={handleRenameFolder}
-          onDeleteFolder={handleDeleteFolder}
+      topNav={
+        <TopNav
           activePage="settings"
           onNavigate={handleNavigate}
           onLock={onLogout}
           onSearch={() => navigate("/vault")}
-          onAdd={() => navigate("/vault", { state: { openAddModal: true } })}
+        />
+      }
+      bottomNav={
+        <BottomNav
+          activePage="settings"
+          onNavigate={handleNavigate}
         />
       }
     >
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-8 py-8 sm:py-12 space-y-10">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-text-primary tracking-tight">Settings</h1>
+          <p className="text-text-secondary mt-2 text-lg">Manage your account, security preferences, and app appearance.</p>
+        </div>
+
         <section>
-          <h2 className="text-sm font-medium text-text-muted uppercase tracking-wider mb-3">
+          <h2 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-4 px-2">
             Security
           </h2>
-          <div className="bg-surface-raised border border-border rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Shield
-                  className={`w-4 h-4 ${twoFactorEnabled ? "text-success" : "text-text-muted"}`}
-                />
+          <div className="bg-surface/50 backdrop-blur-sm border border-border-subtle rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className={`p-2.5 rounded-xl mt-1 ${twoFactorEnabled ? "bg-success/10 text-success" : "bg-surface-sunken text-text-muted"}`}>
+                  <Shield className="w-5 h-5" />
+                </div>
                 <div>
-                  <p className="text-sm text-text-primary">
+                  <p className="text-base font-medium text-text-primary">
                     Two-factor authentication
                   </p>
-                  <p className="text-xs text-text-muted">
+                  <p className="text-sm text-text-secondary mt-1 leading-relaxed">
                     {twoFactorEnabled
                       ? `Enabled \u00b7 ${backupCodesRemaining} backup codes remaining`
                       : "Not enabled"}
@@ -161,52 +136,56 @@ export default function SettingsPage({ onLogout }: Props) {
               </div>
               <Button
                 variant="secondary"
-                size="sm"
+                className="rounded-xl sm:ml-auto flex-shrink-0"
                 onClick={() => setShow2FA(true)}
               >
                 Configure
               </Button>
             </div>
 
-            <div className="border-t border-border" />
+            <div className="border-t border-border-subtle" />
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Monitor
-                  className={`w-4 h-4 ${autoLockOnHidden ? "text-accent" : "text-text-muted"}`}
-                />
-                <div>
-                  <p className="text-sm text-text-primary">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-start gap-4 min-w-0">
+                <div className={`p-2.5 rounded-xl mt-1 flex-shrink-0 ${autoLockOnHidden ? "bg-brand-primary/10 text-brand-primary" : "bg-surface-sunken text-text-muted"}`}>
+                  <Monitor className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-base font-medium text-text-primary">
                     Auto-lock on screen lock
                   </p>
-                  <p className="text-xs text-text-muted">
+                  <p className="text-sm text-text-secondary mt-1 leading-relaxed">
                     Lock vault when screen is locked or minimized
                   </p>
                 </div>
               </div>
-              <Switch
-                checked={autoLockOnHidden}
-                onChange={() => toggleAutoLockOnHidden()}
-              />
+              <div className="flex-shrink-0">
+                <Switch
+                  checked={autoLockOnHidden}
+                  onChange={() => toggleAutoLockOnHidden()}
+                />
+              </div>
             </div>
 
-            <div className="border-t border-border" />
+            <div className="border-t border-border-subtle" />
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <KeyRound className="w-4 h-4 text-text-muted" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="p-2.5 rounded-xl mt-1 bg-surface-sunken text-text-muted">
+                  <KeyRound className="w-5 h-5" />
+                </div>
                 <div>
-                  <p className="text-sm text-text-primary">
+                  <p className="text-base font-medium text-text-primary">
                     Change master password
                   </p>
-                  <p className="text-xs text-text-muted">
+                  <p className="text-sm text-text-secondary mt-1 leading-relaxed">
                     Re-encrypt your vault with a new password
                   </p>
                 </div>
               </div>
               <Button
                 variant="secondary"
-                size="sm"
+                className="rounded-xl sm:ml-auto flex-shrink-0"
                 onClick={() => setShowChangePassword(true)}
               >
                 Change
@@ -216,17 +195,15 @@ export default function SettingsPage({ onLogout }: Props) {
         </section>
 
         <section>
-          <h2 className="text-sm font-medium text-text-muted uppercase tracking-wider mb-3">
+          <h2 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-4 px-2">
             Appearance
           </h2>
-          <div className="bg-surface-raised border border-border rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {resolvedMode === "dark" ? (
-                  <Moon className="w-4 h-4 text-accent" />
-                ) : (
-                  <Sun className="w-4 h-4 text-accent" />
-                )}
+          <div className="bg-surface/50 backdrop-blur-sm border border-border-subtle rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="p-2.5 rounded-xl mt-1 bg-surface-sunken text-text-muted">
+                  {resolvedMode === "dark" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                </div>
                 <div>
                   <p className="text-sm text-text-primary">Theme</p>
                   <p className="text-xs text-text-muted">
@@ -244,9 +221,11 @@ export default function SettingsPage({ onLogout }: Props) {
 
             <div className="border-t border-border" />
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Palette className="w-4 h-4 text-accent" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="p-2.5 rounded-xl mt-1 bg-surface-sunken text-text-muted">
+                  <Palette className="w-5 h-5" />
+                </div>
                 <div>
                   <p className="text-sm text-text-primary">Accent color</p>
                   <p className="text-xs text-text-muted">
@@ -279,11 +258,11 @@ export default function SettingsPage({ onLogout }: Props) {
 
             <div className="border-t border-border" />
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Rows3
-                  className={`w-4 h-4 ${density !== "default" ? "text-accent" : "text-text-muted"}`}
-                />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="p-2.5 rounded-xl mt-1 bg-surface-sunken text-text-muted">
+                  <Rows3 className="w-5 h-5" />
+                </div>
                 <div>
                   <p className="text-sm text-text-primary">UI density</p>
                   <p className="text-xs text-text-muted">
@@ -301,11 +280,11 @@ export default function SettingsPage({ onLogout }: Props) {
 
             <div className="border-t border-border" />
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Type
-                  className={`w-4 h-4 ${fontFamily !== "inter" ? "text-accent" : "text-text-muted"}`}
-                />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="p-2.5 rounded-xl mt-1 bg-surface-sunken text-text-muted">
+                  <Type className="w-5 h-5" />
+                </div>
                 <div>
                   <p className="text-sm text-text-primary">Font</p>
                   <p className="text-xs text-text-muted">
@@ -323,12 +302,12 @@ export default function SettingsPage({ onLogout }: Props) {
 
             <div className="border-t border-border" />
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Palette
-                  className={`w-4 h-4 ${coloredPasswords ? "text-accent" : "text-text-muted"}`}
-                />
-                <div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-start gap-4 min-w-0">
+                <div className="p-2.5 rounded-xl mt-1 bg-surface-sunken text-text-muted flex-shrink-0">
+                  <Palette className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
                   <p className="text-sm text-text-primary">
                     Colored passwords
                   </p>
@@ -337,22 +316,26 @@ export default function SettingsPage({ onLogout }: Props) {
                   </p>
                 </div>
               </div>
-              <Switch
-                checked={coloredPasswords}
-                onChange={() => toggleColoredPasswords()}
-              />
+              <div className="flex-shrink-0">
+                <Switch
+                  checked={coloredPasswords}
+                  onChange={() => toggleColoredPasswords()}
+                />
+              </div>
             </div>
           </div>
         </section>
 
         <section>
-          <h2 className="text-sm font-medium text-text-muted uppercase tracking-wider mb-3">
+          <h2 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-4 px-2">
             Data
           </h2>
-          <div className="bg-surface-raised border border-border rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Upload className="w-4 h-4 text-text-muted" />
+          <div className="bg-surface/50 backdrop-blur-sm border border-border-subtle rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="p-2.5 rounded-xl mt-1 bg-surface-sunken text-text-muted">
+                  <Upload className="w-5 h-5" />
+                </div>
                 <div>
                   <p className="text-sm text-text-primary">Import vault data</p>
                   <p className="text-xs text-text-muted">
@@ -371,9 +354,11 @@ export default function SettingsPage({ onLogout }: Props) {
 
             <div className="border-t border-border" />
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Download className="w-4 h-4 text-text-muted" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="p-2.5 rounded-xl mt-1 bg-surface-sunken text-text-muted">
+                  <Download className="w-5 h-5" />
+                </div>
                 <div>
                   <p className="text-sm text-text-primary">Export vault data</p>
                   <p className="text-xs text-text-muted">
@@ -420,10 +405,6 @@ export default function SettingsPage({ onLogout }: Props) {
         onLogout={onLogout}
       />
 
-      <GeneratePasswordModal
-        open={showGenerate}
-        onClose={() => setShowGenerate(false)}
-      />
     </AppShell>
   );
 }

@@ -17,14 +17,14 @@ import {
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { getLetterColor } from "../../lib/utils";
-import type { VaultItem, RecoveryQuestion, PasswordHistoryEntry } from "../../types";
+import type { VaultItem, RecoveryQuestion } from "../../types";
 import { useClipboard } from "../../hooks/useClipboard";
 import ColoredPassword from "../ui/ColoredPassword";
 import PasswordStrengthIndicator from "../ui/PasswordStrengthIndicator";
-import Badge from "../ui/Badge";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
 import Select from "../ui/Select";
+import styles from "../../styles/effects.module.scss";
 
 interface DetailPanelProps {
   item: VaultItem;
@@ -40,13 +40,14 @@ interface DetailPanelProps {
   breachCount?: number | null;
 }
 
-function CopyButton({ onCopy, isCopied }: { onCopy: () => void; isCopied?: boolean }) {
+function CopyButton({ onCopy, isCopied, label }: { onCopy: () => void; isCopied?: boolean; label?: string }) {
   return (
     <button
       onClick={onCopy}
-      className="p-2 rounded-lg text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors"
+      aria-label={label || "Copy to clipboard"}
+      className="p-2 rounded-xl text-text-muted hover:text-brand-primary hover:bg-brand-primary/10 transition-all duration-200"
     >
-      {isCopied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+      {isCopied ? <Check className="w-4 h-4 text-success" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
     </button>
   );
 }
@@ -56,20 +57,42 @@ function FieldRow({
   value,
   onCopy,
   isCopied,
+  copyLabel,
+  className: extraClassName,
 }: {
   label: string;
   value: string;
   onCopy?: () => void;
   isCopied?: boolean;
+  copyLabel?: string;
+  className?: string;
 }) {
+  const [flashCopy, setFlashCopy] = useState(false);
+
+  const handleCopy = () => {
+    if (onCopy) {
+      onCopy();
+      setFlashCopy(true);
+      setTimeout(() => setFlashCopy(false), 400);
+    }
+  };
+
   return (
-    <div>
-      <p className="text-[11px] font-medium text-text-muted uppercase tracking-wide mb-1">
+    <div className={cn(
+      "group relative bg-surface-sunken rounded-xl p-4 border border-border-subtle hover:border-border transition-all duration-200 shadow-sm",
+      flashCopy && styles.copyFlash,
+      extraClassName
+    )}>
+      <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
         {label}
       </p>
-      <div className="flex items-center gap-2">
-        <span className="flex-1 text-sm text-text-primary break-all">{value}</span>
-        {onCopy && <CopyButton onCopy={onCopy} isCopied={isCopied} />}
+      <div className="flex items-center gap-4">
+        <span className="flex-1 text-sm text-text-primary break-all font-mono">{value}</span>
+        {onCopy && (
+          <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+            <CopyButton onCopy={handleCopy} isCopied={isCopied} label={copyLabel || `Copy ${label.toLowerCase()}`} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -196,36 +219,52 @@ export default function DetailPanel({
   const letterColor = getLetterColor(item.key[0] || "a");
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-border-subtle flex-shrink-0">
+    <div className="h-full flex flex-col bg-surface/95 backdrop-blur-xl">
+      <div className="flex items-center gap-4 px-6 py-5 border-b border-border-subtle flex-shrink-0 bg-surface/50">
         <div
-          className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-sm font-semibold"
+          className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-white text-lg font-bold shadow-sm"
           style={{ backgroundColor: letterColor }}
+          aria-hidden="true"
         >
           {item.key[0]?.toUpperCase() || "?"}
         </div>
         <div className="flex-1 min-w-0">
-          <h2 className="text-sm font-semibold text-text-primary truncate">
+          <h2 className="text-xl font-bold text-text-primary truncate tracking-tight">
             {item.key}
           </h2>
-          <p className="text-xs text-text-muted capitalize">{item.type}</p>
+          <p className="text-sm text-text-muted capitalize font-medium mt-0.5">{item.type}</p>
         </div>
         <button
           onClick={onClose}
-          className="p-1.5 rounded-lg text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors"
+          aria-label="Close detail panel"
+          className="p-2 rounded-full text-text-secondary hover:bg-surface-hover transition-colors"
         >
-          <X className="w-4 h-4" />
+          <X className="w-5 h-5" aria-hidden="true" />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+      <div className={cn("flex-1 overflow-y-auto px-6 py-6 space-y-6", styles.staggerContainer)}>
         {!editing && item.type === "password" && breachCount !== undefined && breachCount !== null && (
-          <div>
-            {breachCount > 0 ? (
-              <Badge variant="danger">Found in {breachCount.toLocaleString()} breaches</Badge>
-            ) : (
-              <Badge variant="success">No breaches found</Badge>
+          <div
+            className={cn(
+              "p-4 rounded-xl border flex items-start gap-3 shadow-sm",
+              breachCount > 0
+                ? "bg-danger/5 border-danger/20 text-danger"
+                : "bg-success/5 border-success/20 text-success"
             )}
+            role={breachCount > 0 ? "alert" : "status"}
+          >
+            <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div>
+              <p className="text-sm font-semibold">
+                {breachCount > 0 ? "Security Alert" : "Secure"}
+              </p>
+              <p className="text-xs mt-1 opacity-90">
+                {breachCount > 0
+                  ? `This password has appeared in ${breachCount.toLocaleString()} known data breaches. You should change it immediately.`
+                  : "This password has not appeared in any known data breaches."}
+              </p>
+            </div>
           </div>
         )}
 
@@ -236,28 +275,36 @@ export default function DetailPanel({
               value={item.credential.username}
               onCopy={() => copy(item.credential!.username)}
               isCopied={copied}
+              copyLabel="Copy username"
             />
-            <div>
-              <p className="text-[11px] font-medium text-text-muted uppercase tracking-wide mb-1">
+            <div className="group relative bg-surface-sunken rounded-xl p-4 border border-border-subtle hover:border-border transition-all duration-200 shadow-sm">
+              <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
                 Password
               </p>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 font-mono text-sm bg-surface-sunken rounded-lg px-3 py-2 border border-border-subtle">
+              <div className="flex items-center gap-4">
+                <div className="flex-1 font-mono text-sm bg-surface rounded-lg px-4 py-3 border border-border-subtle shadow-inner">
                   {showPassword ? (
                     <ColoredPassword password={item.credential.password} />
                   ) : (
-                    <span className="text-text-muted">{"*".repeat(12)}</span>
+                    <span className="text-text-muted tracking-widest" aria-label="Password hidden">{"•".repeat(12)}</span>
                   )}
                 </div>
-                <button
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="p-2 rounded-lg text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-                <CopyButton onCopy={() => copy(item.credential!.password)} isCopied={copied} />
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="p-2 rounded-xl text-text-muted hover:text-brand-primary hover:bg-brand-primary/10 transition-all duration-200"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
+                  </button>
+                  <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                    <CopyButton onCopy={() => copy(item.credential!.password)} isCopied={copied} label="Copy password" />
+                  </div>
+                </div>
               </div>
-              <PasswordStrengthIndicator password={item.credential.password} className="mt-1" />
+              <div className="mt-3 px-1">
+                <PasswordStrengthIndicator password={item.credential.password} />
+              </div>
             </div>
             {item.credential.folder && (
               <FieldRow label="Folder" value={item.credential.folder} />
@@ -267,14 +314,17 @@ export default function DetailPanel({
 
         {item.type === "note" && item.note && !editing && (
           <>
-            <div>
-              <p className="text-[11px] font-medium text-text-muted uppercase tracking-wide mb-1">
+            <div className="group relative bg-surface-sunken rounded-xl p-4 border border-border-subtle hover:border-border transition-all duration-200 shadow-sm">
+              <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">
                 Content
               </p>
-              <div className="bg-surface-sunken rounded-lg px-3 py-2 border border-border-subtle">
-                <p className="text-sm text-text-secondary whitespace-pre-wrap break-words">
+              <div className="relative">
+                <pre className="text-sm text-text-primary whitespace-pre-wrap font-sans bg-surface p-4 rounded-lg border border-border-subtle shadow-inner">
                   {item.note.content}
-                </p>
+                </pre>
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <CopyButton onCopy={() => copy(item.note!.content)} isCopied={copied} label="Copy note content" />
+                </div>
               </div>
             </div>
             {item.note.folder && (
@@ -284,39 +334,57 @@ export default function DetailPanel({
         )}
 
         {item.type === "file" && item.file && !editing && (
-          <>
+          <div className="space-y-6">
             <FieldRow label="File Name" value={item.file.original_name} />
-            <FieldRow label="Size" value={formatFileSize(item.file.size)} />
-            <FieldRow label="Uploaded" value={new Date(item.file.uploaded_at).toLocaleDateString()} />
             {item.file.description && (
               <FieldRow label="Description" value={item.file.description} />
             )}
+            <div className="bg-surface-sunken rounded-xl p-4 border border-border-subtle shadow-sm">
+              <p className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">
+                File Details
+              </p>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between items-center py-2 border-b border-border-subtle/50">
+                  <span className="text-text-muted">Size</span>
+                  <span className="font-medium text-text-primary">{formatFileSize(item.file.size)}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-border-subtle/50">
+                  <span className="text-text-muted">Type</span>
+                  <span className="font-medium text-text-primary">{item.file.mime_type}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-text-muted">Uploaded</span>
+                  <span className="font-medium text-text-primary">{new Date(item.file.uploaded_at).toLocaleString()}</span>
+                </div>
+              </div>
+              <Button
+                variant="primary"
+                className="w-full mt-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                onClick={() => onDownloadFile(item.key, item.index)}
+                aria-label={`Download ${item.file.original_name}`}
+              >
+                <Download className="w-4 h-4 mr-2" aria-hidden="true" />
+                Download File
+              </Button>
+            </div>
             {item.file.folder && (
               <FieldRow label="Folder" value={item.file.folder} />
             )}
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onDownloadFile(item.key, item.index)}
-              icon={<Download className="w-3.5 h-3.5" />}
-            >
-              Download
-            </Button>
-          </>
+          </div>
         )}
 
         {editing && (
-          <div className="space-y-3">
+          <div className="space-y-5 bg-surface-sunken p-5 rounded-xl border border-border-subtle shadow-inner">
             {item.type === "password" && (
               <>
                 {breachCount !== undefined && breachCount !== null && breachCount > 0 && (
-                  <div className="flex items-start gap-2.5 bg-red-600/10 border border-red-600/20 rounded-lg px-3 py-2.5">
-                    <AlertTriangle className="w-4 h-4 text-danger flex-shrink-0 mt-0.5" />
+                  <div className="flex items-start gap-3 bg-danger/5 border border-danger/20 rounded-xl p-4 shadow-sm" role="alert">
+                    <AlertTriangle className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" aria-hidden="true" />
                     <div>
-                      <p className="text-xs font-medium text-danger">
+                      <p className="text-sm font-semibold text-danger">
                         Found in {breachCount.toLocaleString()} {breachCount === 1 ? "breach" : "breaches"}
                       </p>
-                      <p className="text-[11px] text-text-muted mt-0.5">
+                      <p className="text-xs text-text-muted mt-1 opacity-90">
                         Change this password to something strong and unique.
                       </p>
                     </div>
@@ -324,35 +392,47 @@ export default function DetailPanel({
                 )}
                 <Input label="Username" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} />
                 <Input label="Password" type="password" value={editPassword} onChange={(e) => setEditPasswordVal(e.target.value)} />
-                <Input label="Notes" value={editNotes} onChange={(e) => setEditNotes(e.target.value)} />
+                <div className="space-y-1.5">
+                  <label htmlFor="edit-notes" className="block text-sm font-medium text-text-secondary">
+                    Notes
+                  </label>
+                  <textarea
+                    id="edit-notes"
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    className="w-full bg-surface border border-border-subtle rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/20 transition-all min-h-[100px] resize-y"
+                    placeholder="Add secure notes..."
+                  />
+                </div>
               </>
             )}
             {item.type === "note" && (
-              <div>
-                <label className={cn("block text-sm font-medium text-text-secondary mb-1.5")}>Content</label>
+              <div className="space-y-1.5">
+                <label htmlFor="edit-content" className="block text-sm font-medium text-text-secondary">
+                  Content
+                </label>
                 <textarea
+                  id="edit-content"
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  rows={6}
-                  className="w-full bg-surface-sunken border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/20 transition-colors resize-none"
+                  className="w-full bg-surface border border-border-subtle rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-brand-primary/50 focus:ring-2 focus:ring-brand-primary/20 transition-all min-h-[200px] resize-y"
                 />
               </div>
             )}
             {item.type === "file" && (
               <Input label="Description" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
             )}
-            <div>
-              <label className={cn("block text-sm font-medium text-text-secondary mb-1.5")}>Folder</label>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-text-secondary">Folder</label>
               <Select
                 value={editFolder}
-                onChange={(val) => setEditFolder(val)}
+                onChange={setEditFolder}
                 options={folderOptions}
-                placeholder="No folder"
               />
             </div>
-            <div className="flex gap-2 pt-2">
-              <Button variant="primary" size="sm" onClick={handleSave}>Save</Button>
-              <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>Cancel</Button>
+            <div className="flex gap-3 pt-4 border-t border-border-subtle">
+              <Button variant="primary" className="flex-1 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200" onClick={handleSave}>Save Changes</Button>
+              <Button variant="secondary" className="flex-1" onClick={() => setEditing(false)}>Cancel</Button>
             </div>
           </div>
         )}
@@ -361,123 +441,143 @@ export default function DetailPanel({
           <>
             {((item.type === "password" && item.credential?.recovery_questions?.length) ||
               (item.type === "note" && item.note?.recovery_questions?.length)) && (
-              <button
-                onClick={() => setRecoveryExpanded(!recoveryExpanded)}
-                className="flex items-center gap-1.5 text-xs font-medium text-text-muted hover:text-text-secondary transition-colors"
-              >
-                {recoveryExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                Recovery Questions
-              </button>
-            )}
-            {recoveryExpanded && (
-              <div className="space-y-2 pl-4">
-                {(item.type === "password"
-                  ? item.credential?.recovery_questions
-                  : item.note?.recovery_questions
-                )?.map((rq, i) => (
-                  <div key={i} className="text-xs">
-                    <p className="text-text-muted">{rq.question}</p>
-                    <p className="text-text-secondary">{rq.answer}</p>
+              <div className="group relative bg-surface-sunken rounded-xl p-4 border border-border-subtle hover:border-border transition-all duration-200 shadow-sm">
+                <button
+                  onClick={() => setRecoveryExpanded(!recoveryExpanded)}
+                  className="flex items-center justify-between w-full text-left"
+                  aria-expanded={recoveryExpanded}
+                >
+                  <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+                    Recovery Questions ({(item.type === "password" ? item.credential?.recovery_questions?.length : item.note?.recovery_questions?.length)})
+                  </p>
+                  {recoveryExpanded ? (
+                    <ChevronDown className="w-4 h-4 text-text-muted" aria-hidden="true" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-text-muted" aria-hidden="true" />
+                  )}
+                </button>
+                {recoveryExpanded && (
+                  <div className="mt-4 space-y-4">
+                    {(item.type === "password"
+                      ? item.credential?.recovery_questions
+                      : item.note?.recovery_questions
+                    )?.map((rq, i) => (
+                      <div key={i} className="bg-surface p-4 rounded-lg border border-border-subtle shadow-inner">
+                        <p className="text-sm font-medium text-text-primary mb-2">{rq.question}</p>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 font-mono text-sm bg-surface-sunken rounded-md px-3 py-2 border border-border-subtle">
+                            {showPassword ? rq.answer : "•".repeat(8)}
+                          </div>
+                          <CopyButton onCopy={() => copy(rq.answer)} isCopied={copied} label="Copy recovery answer" />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             )}
           </>
         )}
 
         {!editing && item.type === "password" && item.credential?.notes && (
-          <>
+          <div className="group relative bg-surface-sunken rounded-xl p-4 border border-border-subtle hover:border-border transition-all duration-200 shadow-sm">
             <button
               onClick={() => setNotesExpanded(!notesExpanded)}
-              className="flex items-center gap-1.5 text-xs font-medium text-text-muted hover:text-text-secondary transition-colors"
+              className="flex items-center justify-between w-full text-left"
+              aria-expanded={notesExpanded}
             >
-              {notesExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-              Notes
+              <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+                Notes
+              </p>
+              {notesExpanded ? (
+                <ChevronDown className="w-4 h-4 text-text-muted" aria-hidden="true" />
+              ) : (
+                <ChevronRight className="w-4 h-4 text-text-muted" aria-hidden="true" />
+              )}
             </button>
             {notesExpanded && (
-              <div className="bg-surface-sunken rounded-lg px-3 py-2 border border-border-subtle">
-                <p className="text-xs text-text-secondary whitespace-pre-wrap">{item.credential.notes}</p>
+              <div className="mt-3 relative">
+                <pre className="text-sm text-text-primary whitespace-pre-wrap font-sans bg-surface p-4 rounded-lg border border-border-subtle shadow-inner">
+                  {item.credential.notes}
+                </pre>
+                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <CopyButton onCopy={() => copy(item.credential!.notes!)} isCopied={copied} label="Copy notes" />
+                </div>
               </div>
             )}
-          </>
+          </div>
         )}
         {!editing && item.type === "password" && item.credential?.history && item.credential.history.length > 0 && (
-          <>
+          <div className="group relative bg-surface-sunken rounded-xl p-4 border border-border-subtle hover:border-border transition-all duration-200 shadow-sm">
             <button
               onClick={() => setHistoryExpanded(!historyExpanded)}
-              className="flex items-center gap-1.5 text-xs font-medium text-text-muted hover:text-text-secondary transition-colors"
+              className="flex items-center justify-between w-full text-left"
+              aria-expanded={historyExpanded}
             >
-              {historyExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-              <History className="w-3 h-3" />
-              Password History ({item.credential.history.length})
+              <div className="flex items-center gap-2">
+                <History className="w-4 h-4 text-text-muted" aria-hidden="true" />
+                <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+                  Password History ({item.credential.history.length})
+                </p>
+              </div>
+              {historyExpanded ? (
+                <ChevronDown className="w-4 h-4 text-text-muted" aria-hidden="true" />
+              ) : (
+                <ChevronRight className="w-4 h-4 text-text-muted" aria-hidden="true" />
+              )}
             </button>
             {historyExpanded && (
-              <div className="space-y-2 pl-4">
+              <div className="mt-4 space-y-3">
                 {[...item.credential.history].reverse().map((entry, i) => (
-                  <div
-                    key={i}
-                    className="bg-surface-sunken rounded-lg px-3 py-2 border border-border-subtle"
-                  >
+                  <div key={i} className="bg-surface p-4 rounded-lg border border-border-subtle shadow-inner">
+                    <div className="flex items-center gap-2 mb-3 text-xs text-text-muted">
+                      <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+                      <time dateTime={entry.changed_at}>{new Date(entry.changed_at).toLocaleString()}</time>
+                    </div>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 font-mono text-xs">
+                      <div className="flex-1 font-mono text-sm bg-surface-sunken rounded-md px-3 py-2 border border-border-subtle">
                         {historyPasswordVisible.has(i) ? (
-                          <span className="text-text-secondary break-all">{entry.password}</span>
+                          <ColoredPassword password={entry.password} />
                         ) : (
-                          <span className="text-text-muted">{"*".repeat(12)}</span>
+                          <span className="text-text-muted tracking-widest">{"•".repeat(12)}</span>
                         )}
                       </div>
                       <button
                         onClick={() => toggleHistoryPassword(i)}
-                        className="p-1 rounded text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors"
+                        aria-label={historyPasswordVisible.has(i) ? "Hide historical password" : "Show historical password"}
+                        className="p-2 rounded-lg text-text-muted hover:text-brand-primary hover:bg-brand-primary/10 transition-all duration-200"
                       >
-                        {historyPasswordVisible.has(i) ? (
-                          <EyeOff className="w-3 h-3" />
-                        ) : (
-                          <Eye className="w-3 h-3" />
-                        )}
+                        {historyPasswordVisible.has(i) ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
                       </button>
-                      <CopyButton
-                        onCopy={() => copy(entry.password)}
-                        isCopied={copied}
-                      />
-                    </div>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Clock className="w-3 h-3 text-text-muted" />
-                      <span className="text-[10px] text-text-muted">
-                        {new Date(entry.changed_at).toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
+                      <CopyButton onCopy={() => copy(entry.password)} isCopied={copied} label="Copy historical password" />
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
 
       {!editing && (
-        <div className="flex items-center gap-2 px-5 py-3 border-t border-border-subtle flex-shrink-0">
+        <div className="p-5 border-t border-border-subtle bg-surface/50 flex gap-3 flex-shrink-0">
           <Button
             variant="secondary"
-            size="sm"
+            className="flex-1"
             onClick={startEditing}
-            icon={<Pencil className="w-3.5 h-3.5" />}
+            aria-label={`Edit ${item.key}`}
           >
+            <Pencil className="w-4 h-4 mr-2" aria-hidden="true" />
             Edit
           </Button>
           <Button
-            variant="danger"
-            size="sm"
+            variant={confirmDelete ? "danger" : "secondary"}
+            className="flex-1"
             onClick={handleDelete}
-            icon={<Trash2 className="w-3.5 h-3.5" />}
+            aria-label={confirmDelete ? `Confirm delete ${item.key}` : `Delete ${item.key}`}
           >
-            {confirmDelete ? "Confirm" : "Delete"}
+            <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" />
+            {confirmDelete ? "Confirm Delete" : "Delete"}
           </Button>
         </div>
       )}

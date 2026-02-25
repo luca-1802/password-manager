@@ -1,0 +1,9 @@
+@use "variables";
+@use "animations";
+@use "accessibility";
+
+@property --gradient-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}

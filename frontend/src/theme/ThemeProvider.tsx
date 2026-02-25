@@ -48,21 +48,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const resolvedMode: "light" | "dark" =
     themeMode === "system" ? (systemPrefersDark ? "dark" : "light") : themeMode;
 
-  // Apply all CSS variables — useLayoutEffect to prevent flash
   useLayoutEffect(() => {
     const root = document.documentElement;
     const preset = ACCENT_PRESETS[accentColor];
     const colors = resolvedMode === "dark" ? DARK_THEME : LIGHT_THEME;
     const densityCfg = DENSITY_CONFIG[density];
 
-    // Accent variables
     root.style.setProperty("--color-accent", preset.accent);
     root.style.setProperty("--color-accent-hover", preset.accentHover);
     root.style.setProperty("--color-accent-muted", preset.accentMuted);
     root.style.setProperty("--color-accent-text", preset.accentText);
     root.style.setProperty("--color-gold-glow", preset.goldGlow);
 
-    // Theme mode variables
     root.style.setProperty("--color-bg", colors.bg);
     root.style.setProperty("--color-surface", colors.surface);
     root.style.setProperty("--color-surface-hover", colors.surfaceHover);
@@ -75,15 +72,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.style.setProperty("--color-text-muted", colors.textMuted);
     root.style.setProperty("--color-sidebar", colors.sidebar);
 
-    // Font family
     root.style.setProperty("--font-sans", FONT_FAMILY_MAP[fontFamily]);
 
-    // Density
     root.style.fontSize = densityCfg.fontSize;
     DENSITIES.forEach((d) => root.classList.remove(DENSITY_CONFIG[d].className));
     root.classList.add(densityCfg.className);
 
-    // Dynamic styles for ::selection and scrollbar
     const STYLE_ID = "theme-dynamic-styles";
     let styleEl = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
     if (!styleEl) {

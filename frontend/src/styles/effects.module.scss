@@ -1,0 +1,65 @@
+@use "variables" as *;
+@use "mixins" as *;
+@use "animations";
+
+.rippleBtn {
+  @include ripple;
+}
+
+.gradientBorderCard {
+  @include gradient-border(24px, 1px);
+}
+
+.shakeError {
+  @include shake;
+}
+
+.hoverAccentBorder {
+  position: relative;
+  @include hover-accent-border(left, 3px);
+}
+
+.switchGlow {
+  @include switch-glow;
+  transition: box-shadow $duration-normal $ease-smooth;
+}
+
+.skeleton {
+  background: $skeleton-base;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      $skeleton-shine 50%,
+      transparent 100%
+    );
+    animation: shimmer $skeleton-duration ease-in-out infinite;
+  }
+}
+
+.copyFlash {
+  animation: copy-flash $duration-slow $ease-smooth;
+}
+
+.successPulse {
+  animation: success-pulse $duration-slower $ease-smooth;
+}
+
+.staggerContainer {
+  > * {
+    @for $i from 1 through 10 {
+      &:nth-child(#{$i}) {
+        animation: fade-slide-up $duration-normal $ease-spring forwards;
+        animation-delay: #{$i * 50}ms;
+        opacity: 0;
+      }
+    }
+  }
+}

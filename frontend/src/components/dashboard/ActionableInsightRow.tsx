@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, AlertCircle, Info, ChevronDown, ChevronRight } from "lucide-react";
+import { AlertTriangle, Info, ChevronDown, ChevronRight, ShieldAlert, KeyRound, Copy } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { getLetterColor } from "../../lib/utils";
 
@@ -11,6 +11,7 @@ export interface InsightDetail {
 }
 
 interface ActionableInsightRowProps {
+  id?: string;
   severity: "critical" | "warning" | "info";
   title: string;
   description: string;
@@ -20,12 +21,31 @@ interface ActionableInsightRowProps {
 }
 
 const severityConfig = {
-  critical: { icon: AlertTriangle, color: "text-danger", bg: "bg-red-600/10", border: "border-red-600/20" },
-  warning: { icon: AlertCircle, color: "text-amber-500", bg: "bg-amber-600/10", border: "border-amber-600/20" },
-  info: { icon: Info, color: "text-info", bg: "bg-blue-600/10", border: "border-blue-600/20" },
+  critical: { 
+    icon: ShieldAlert, 
+    color: "text-red-500", 
+    bg: "bg-red-500/10", 
+    border: "border-red-500/20",
+    hover: "hover:bg-red-500/20"
+  },
+  warning: { 
+    icon: AlertTriangle, 
+    color: "text-amber-500", 
+    bg: "bg-amber-500/10", 
+    border: "border-amber-500/20",
+    hover: "hover:bg-amber-500/20"
+  },
+  info: { 
+    icon: Info, 
+    color: "text-blue-500", 
+    bg: "bg-blue-500/10", 
+    border: "border-blue-500/20",
+    hover: "hover:bg-blue-500/20"
+  },
 };
 
 export default function ActionableInsightRow({
+  id,
   severity,
   title,
   description,
@@ -35,49 +55,64 @@ export default function ActionableInsightRow({
 }: ActionableInsightRowProps) {
   const [expanded, setExpanded] = useState(false);
   const config = severityConfig[severity];
-  const Icon = config.icon;
+  
+  let Icon = config.icon;
+  if (id === "weak") Icon = KeyRound;
+  if (id === "reused") Icon = Copy;
+  
   const hasDetails = details && details.length > 0;
 
   return (
-    <div className={cn("rounded-lg border", config.bg, config.border)}>
+    <div className={cn("rounded-xl border overflow-hidden transition-all duration-200", expanded ? "shadow-md" : "shadow-sm", config.bg, config.border)}>
       <div
         className={cn(
-          "flex items-center gap-3 p-3",
+          "flex items-center gap-4 p-4",
           hasDetails && "cursor-pointer"
         )}
         onClick={() => hasDetails && setExpanded(!expanded)}
       >
-        <Icon className={cn("w-4 h-4 flex-shrink-0", config.color)} />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-text-primary">{title}</p>
-          <p className="text-xs text-text-muted">{description}</p>
+        <div className={cn("p-2.5 rounded-lg", config.bg)}>
+          <Icon className={cn("w-5 h-5 flex-shrink-0", config.color)} />
         </div>
-        <span className={cn("text-xs font-semibold px-2 py-0.5 rounded-md", config.bg, config.color)}>
-          {count}
-        </span>
-        {hasDetails ? (
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-base font-semibold text-text-primary">{title}</p>
+            <span className={cn("text-xs font-bold px-2 py-0.5 rounded-full", config.bg, config.color)}>
+              {count}
+            </span>
+          </div>
+          <p className="text-sm text-text-muted mt-0.5">{description}</p>
+        </div>
+        
+        <div className="flex items-center gap-2">
           <button
-            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-            className="p-1.5 rounded-lg text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAction();
+            }}
+            className="text-sm font-medium text-brand-primary hover:text-brand-primary/80 px-3 py-1.5 rounded-lg hover:bg-brand-primary/10 transition-colors"
           >
-            {expanded
-              ? <ChevronDown className="w-4 h-4" />
-              : <ChevronRight className="w-4 h-4" />
-            }
+            Review
           </button>
-        ) : (
-          <button
-            onClick={onAction}
-            className="p-1.5 rounded-lg text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        )}
+          
+          {hasDetails && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+              className={cn("p-1.5 rounded-lg text-text-muted transition-colors", config.hover)}
+            >
+              {expanded
+                ? <ChevronDown className="w-5 h-5" />
+                : <ChevronRight className="w-5 h-5" />
+              }
+            </button>
+          )}
+        </div>
       </div>
 
       {hasDetails && expanded && (
-        <div className="border-t border-border/40 px-3 pb-3">
-          <div className="mt-2 space-y-1">
+        <div className="border-t border-border/40 bg-surface-raised/50 p-2">
+          <div className="max-h-60 overflow-y-auto custom-scrollbar pr-1 space-y-1">
             {details.map((d, i) => {
               const letterColor = getLetterColor(d.label[0] || "a");
               return (
@@ -85,26 +120,29 @@ export default function ActionableInsightRow({
                   key={i}
                   onClick={d.onClick}
                   className={cn(
-                    "flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-surface-hover/50 transition-colors",
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-surface-hover transition-colors group",
                     d.onClick && "cursor-pointer"
                   )}
                 >
                   <div
-                    className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0 text-white text-[10px] font-semibold"
+                    className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 text-white text-xs font-bold shadow-sm"
                     style={{ backgroundColor: letterColor }}
                   >
                     {d.label[0]?.toUpperCase() || "?"}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-text-primary truncate">{d.label}</p>
+                    <p className="text-sm font-medium text-text-primary truncate group-hover:text-brand-primary transition-colors">{d.label}</p>
                     {d.sublabel && (
-                      <p className="text-[11px] text-text-muted truncate">{d.sublabel}</p>
+                      <p className="text-xs text-text-muted truncate">{d.sublabel}</p>
                     )}
                   </div>
                   {d.meta && (
-                    <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded", config.bg, config.color)}>
+                    <span className={cn("text-xs font-medium px-2 py-1 rounded-md", config.bg, config.color)}>
                       {d.meta}
                     </span>
+                  )}
+                  {d.onClick && (
+                    <ChevronRight className="w-4 h-4 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
                   )}
                 </div>
               );

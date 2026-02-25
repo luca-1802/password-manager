@@ -75,6 +75,7 @@ export interface SecureFile {
   file_id: string;
   original_name: string;
   size: number;
+  mime_type?: string;
   description?: string | null;
   folder?: string | null;
   uploaded_at: string;
