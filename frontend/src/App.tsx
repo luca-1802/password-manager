@@ -11,6 +11,7 @@ import DashboardPage from "./pages/DashboardPage";
 import SettingsPage from "./pages/SettingsPage";
 import GeneratorPage from "./pages/GeneratorPage";
 import TrashPage from "./pages/TrashPage";
+import HistoryPage from "./pages/HistoryPage";
 
 const pageVariants = {
   initial: { opacity: 0, y: 6 },
@@ -135,6 +136,16 @@ function App() {
               element={
                 authState.authenticated ? (
                   <TrashPage onLogout={onLogout} />
+                ) : (
+                  <Navigate to="/" />
+                )
+              }
+            />
+            <Route
+              path="/history"
+              element={
+                authState.authenticated ? (
+                  <HistoryPage onLogout={onLogout} />
                 ) : (
                   <Navigate to="/" />
                 )

@@ -552,6 +552,7 @@ export default function VaultPage({ onLogout }: Props) {
                 else setShowAdd(true);
               }}
               getBreachCount={getBreachCount}
+              onHistory={() => navigate("/history")}
             />
           ) : (
             <FolderContentView

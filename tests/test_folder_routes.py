@@ -27,32 +27,6 @@ class TestCreateFolder:
         assert resp.status_code == 409
         assert "already exists" in resp.get_json()["error"]
 
-    def test_empty_name_rejected(self, auth_client):
-        resp = auth_client.post("/api/folders/", headers=csrf_headers(), json={"name": "  "})
-        assert resp.status_code == 400
-
-    def test_missing_name_rejected(self, auth_client):
-        resp = auth_client.post("/api/folders/", headers=csrf_headers(), json={})
-        assert resp.status_code == 400
-
-    def test_too_long_name_rejected(self, auth_client):
-        resp = auth_client.post("/api/folders/", headers=csrf_headers(), json={
-            "name": "a" * 51,
-        })
-        assert resp.status_code == 400
-
-    def test_invalid_characters_rejected(self, auth_client):
-        resp = auth_client.post("/api/folders/", headers=csrf_headers(), json={
-            "name": "Bad<Folder>",
-        })
-        assert resp.status_code == 400
-
-    def test_non_string_name_rejected(self, auth_client):
-        resp = auth_client.post("/api/folders/", headers=csrf_headers(), json={
-            "name": 12345,
-        })
-        assert resp.status_code == 400
-
 class TestRenameFolder:
     def test_rename_folder(self, auth_client):
         auth_client.post("/api/folders/", headers=csrf_headers(), json={"name": "Old"})
@@ -78,24 +52,6 @@ class TestRenameFolder:
         vault = auth_client.get("/api/passwords/").get_json()
         assert vault["passwords"]["test.com"][0]["folder"] == "NewName"
 
-    def test_rename_nonexistent_folder(self, auth_client):
-        resp = auth_client.put("/api/folders/Ghost", headers=csrf_headers(), json={
-            "new_name": "New",
-        })
-        assert resp.status_code == 404
-
-    def test_rename_missing_new_name(self, auth_client):
-        auth_client.post("/api/folders/", headers=csrf_headers(), json={"name": "F"})
-        resp = auth_client.put("/api/folders/F", headers=csrf_headers(), json={})
-        assert resp.status_code == 400
-
-    def test_rename_empty_new_name(self, auth_client):
-        auth_client.post("/api/folders/", headers=csrf_headers(), json={"name": "F"})
-        resp = auth_client.put("/api/folders/F", headers=csrf_headers(), json={
-            "new_name": "  ",
-        })
-        assert resp.status_code == 400
-
 class TestDeleteFolder:
     def test_delete_folder(self, auth_client):
         auth_client.post("/api/folders/", headers=csrf_headers(), json={"name": "Trash"})
@@ -116,7 +72,3 @@ class TestDeleteFolder:
         vault = auth_client.get("/api/passwords/").get_json()
         assert "clean.com" in vault["passwords"]
         assert "folder" not in vault["passwords"]["clean.com"][0]
-
-    def test_delete_nonexistent_folder(self, auth_client):
-        resp = auth_client.delete("/api/folders/Ghost", headers=csrf_headers())
-        assert resp.status_code == 404

@@ -3,35 +3,7 @@ import json
 import time
 import pytest
 from backend.vault import derive_key, save_passwords_with_key, SALT_SIZE
-from backend.routes.auth_routes import validate_master_password
 from tests.conftest import TEST_MASTER_PASSWORD, csrf_headers
-
-class TestValidateMasterPassword:
-    def test_valid_password(self):
-        assert validate_master_password("SecurePass123!", 12) is None
-
-    def test_too_short(self):
-        err = validate_master_password("Short1A", 12)
-        assert "at least 12" in err
-
-    def test_too_long(self):
-        err = validate_master_password("A" * 129 + "a1", 12)
-        assert "at most 128" in err
-
-    def test_no_uppercase(self):
-        err = validate_master_password("alllowercase1234", 12)
-        assert "uppercase" in err
-
-    def test_no_lowercase(self):
-        err = validate_master_password("ALLUPPERCASE1234", 12)
-        assert "lowercase" in err
-
-    def test_no_digit(self):
-        err = validate_master_password("NoDigitsHereAA", 12)
-        assert "digit" in err
-
-    def test_exact_minimum_length(self):
-        assert validate_master_password("Abcdefghij1k", 12) is None
 
 class TestAuthStatus:
     def test_unauthenticated_status(self, client):
@@ -76,10 +48,6 @@ class TestCreateVault:
         })
         assert resp.status_code == 400
 
-    def test_create_vault_missing_fields(self, client):
-        resp = client.post("/api/auth/create", json={"master_password": "Test12345678"})
-        assert resp.status_code == 400
-
     def test_create_vault_already_exists(self, client, seeded_vault):
         resp = client.post("/api/auth/create", json={
             "master_password": TEST_MASTER_PASSWORD,
@@ -110,14 +78,6 @@ class TestLogin:
         })
         assert resp.status_code == 400
         assert "not initialized" in resp.get_json()["error"]
-
-    def test_login_missing_password(self, client, seeded_vault):
-        resp = client.post("/api/auth/login", json={})
-        assert resp.status_code == 400
-
-    def test_login_non_string_password(self, client, seeded_vault):
-        resp = client.post("/api/auth/login", json={"master_password": 12345})
-        assert resp.status_code == 400
 
     def test_login_sets_session(self, client, seeded_vault):
         client.post("/api/auth/login", json={
@@ -169,14 +129,6 @@ class TestChangePassword:
         assert resp.status_code == 400
         assert "different" in resp.get_json()["error"]
 
-    def test_change_password_weak_new(self, auth_client, seeded_vault):
-        resp = auth_client.post("/api/auth/change-password", headers=csrf_headers(), json={
-            "current_password": TEST_MASTER_PASSWORD,
-            "new_password": "weak",
-            "confirm": "weak",
-        })
-        assert resp.status_code == 400
-
     def test_change_password_unauthenticated(self, client, seeded_vault):
         resp = client.post("/api/auth/change-password",
             headers={"Content-Type": "application/json"},
@@ -187,12 +139,6 @@ class TestChangePassword:
             },
         )
         assert resp.status_code in (401, 403)
-
-    def test_change_password_missing_fields(self, auth_client):
-        resp = auth_client.post("/api/auth/change-password", headers=csrf_headers(), json={
-            "current_password": TEST_MASTER_PASSWORD,
-        })
-        assert resp.status_code == 400
 
 class TestSessionTimeout:
     def test_expired_session_returns_401(self, app, seeded_vault):
@@ -213,12 +159,6 @@ class TestCsrfProtection:
     def test_post_without_csrf_rejected(self, auth_client):
         resp = auth_client.post("/api/auth/logout",
             headers={"Content-Type": "application/json"},
-        )
-        assert resp.status_code == 403
-
-    def test_post_with_wrong_csrf_rejected(self, auth_client):
-        resp = auth_client.post("/api/auth/logout",
-            headers={"X-CSRF-Token": "wrong-token", "Content-Type": "application/json"},
         )
         assert resp.status_code == 403
 

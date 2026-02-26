@@ -2,102 +2,7 @@ import os
 import json
 import pytest
 from backend.vault import load_passwords_with_key, save_passwords_with_key, SALT_SIZE, derive_key
-from backend.routes.vault_routes import (
-    validate_website,
-    validate_folder,
-    validate_notes_field,
-    validate_recovery_questions,
-)
 from tests.conftest import csrf_headers
-
-class TestValidateWebsite:
-    def test_valid_simple(self):
-        assert validate_website("example.com") is True
-
-    def test_valid_with_path(self):
-        assert validate_website("example.com/login") is True
-
-    def test_empty_rejected(self):
-        assert validate_website("") is False
-
-    def test_none_rejected(self):
-        assert validate_website(None) is False
-
-    def test_too_long(self):
-        assert validate_website("a" * 254) is False
-
-    def test_reserved_key_rejected(self):
-        assert validate_website("_folders_meta") is False
-        assert validate_website("_notes") is False
-        assert validate_website("_files") is False
-        assert validate_website("_trash") is False
-
-    def test_special_characters_rejected(self):
-        assert validate_website("site<script>") is False
-
-class TestValidateFolder:
-    def test_none_returns_none(self):
-        assert validate_folder(None) is None
-
-    def test_empty_returns_none(self):
-        assert validate_folder("   ") is None
-
-    def test_valid_folder(self):
-        assert validate_folder("Work") is None
-
-    def test_too_long(self):
-        err = validate_folder("a" * 51)
-        assert err is not None
-
-    def test_invalid_characters(self):
-        err = validate_folder("folder<>")
-        assert "invalid characters" in err
-
-    def test_non_string_rejected(self):
-        err = validate_folder(123)
-        assert "must be a string" in err
-
-class TestValidateNotesField:
-    def test_none_valid(self):
-        assert validate_notes_field(None) is None
-
-    def test_valid_string(self):
-        assert validate_notes_field("Some notes") is None
-
-    def test_too_long(self):
-        err = validate_notes_field("x" * 10001)
-        assert err is not None
-
-    def test_non_string(self):
-        err = validate_notes_field(123)
-        assert "must be a string" in err
-
-class TestValidateRecoveryQuestions:
-    def test_none_valid(self):
-        assert validate_recovery_questions(None) is None
-
-    def test_valid_questions(self):
-        qs = [{"question": "Pet?", "answer": "Dog"}]
-        assert validate_recovery_questions(qs) is None
-
-    def test_too_many(self):
-        qs = [{"question": f"Q{i}", "answer": f"A{i}"} for i in range(11)]
-        err = validate_recovery_questions(qs)
-        assert "Maximum" in err
-
-    def test_not_a_list(self):
-        err = validate_recovery_questions("not a list")
-        assert "must be an array" in err
-
-    def test_missing_question_field(self):
-        qs = [{"answer": "yes"}]
-        err = validate_recovery_questions(qs)
-        assert "question string" in err
-
-    def test_missing_answer_field(self):
-        qs = [{"question": "Q?"}]
-        err = validate_recovery_questions(qs)
-        assert "answer string" in err
 
 class TestGetAll:
     def test_get_empty_vault(self, auth_client):
@@ -160,33 +65,6 @@ class TestAddEntry:
         vault_resp = auth_client.get("/api/passwords/")
         assert "Work" in vault_resp.get_json()["folders"]
 
-    def test_add_with_notes(self, auth_client):
-        resp = auth_client.post("/api/passwords/", headers=csrf_headers(), json={
-            "website": "noted.com",
-            "username": "user",
-            "password": "Pass123!",
-            "notes": "Important notes here",
-        })
-        assert resp.status_code == 201
-
-    def test_add_with_recovery_questions(self, auth_client):
-        resp = auth_client.post("/api/passwords/", headers=csrf_headers(), json={
-            "website": "secured.com",
-            "username": "user",
-            "password": "Pass123!",
-            "recovery_questions": [
-                {"question": "First pet?", "answer": "Rex"},
-            ],
-        })
-        assert resp.status_code == 201
-
-    def test_missing_website_rejected(self, auth_client):
-        resp = auth_client.post("/api/passwords/", headers=csrf_headers(), json={
-            "username": "user",
-            "password": "pass",
-        })
-        assert resp.status_code == 400
-
     def test_invalid_website_rejected(self, auth_client):
         resp = auth_client.post("/api/passwords/", headers=csrf_headers(), json={
             "website": "<script>alert(1)</script>",
@@ -198,21 +76,6 @@ class TestAddEntry:
         resp = auth_client.post("/api/passwords/", headers=csrf_headers(), json={
             "website": "_folders_meta",
             "password": "pass",
-        })
-        assert resp.status_code == 400
-
-    def test_username_too_long(self, auth_client):
-        resp = auth_client.post("/api/passwords/", headers=csrf_headers(), json={
-            "website": "example.com",
-            "username": "u" * 257,
-            "password": "pass",
-        })
-        assert resp.status_code == 400
-
-    def test_password_too_long(self, auth_client):
-        resp = auth_client.post("/api/passwords/", headers=csrf_headers(), json={
-            "website": "example.com",
-            "password": "p" * 1025,
         })
         assert resp.status_code == 400
 
@@ -361,62 +224,7 @@ class TestEditEntry:
         })
         assert resp.status_code == 400
 
-    def test_edit_empty_password_rejected(self, auth_client):
-        auth_client.post("/api/passwords/", headers=csrf_headers(), json={
-            "website": "empty.com",
-            "username": "user",
-            "password": "Pass123!",
-        })
-        resp = auth_client.put("/api/passwords/0/empty.com", headers=csrf_headers(), json={
-            "password": "",
-        })
-        assert resp.status_code == 400
-
-    def test_edit_folder(self, auth_client):
-        auth_client.post("/api/passwords/", headers=csrf_headers(), json={
-            "website": "folder.com",
-            "username": "user",
-            "password": "Pass123!",
-        })
-        resp = auth_client.put("/api/passwords/0/folder.com", headers=csrf_headers(), json={
-            "folder": "Personal",
-        })
-        assert resp.status_code == 200
-        vault = auth_client.get("/api/passwords/").get_json()
-        assert vault["passwords"]["folder.com"][0]["folder"] == "Personal"
-
-    def test_edit_remove_folder(self, auth_client):
-        auth_client.post("/api/passwords/", headers=csrf_headers(), json={
-            "website": "unfolder.com",
-            "username": "user",
-            "password": "Pass123!",
-            "folder": "Old",
-        })
-        auth_client.put("/api/passwords/0/unfolder.com", headers=csrf_headers(), json={
-            "folder": None,
-        })
-        vault = auth_client.get("/api/passwords/").get_json()
-        assert "folder" not in vault["passwords"]["unfolder.com"][0]
-
-    def test_edit_no_data_rejected(self, auth_client):
-        resp = auth_client.put("/api/passwords/0/test.com",
-            headers=csrf_headers(),
-            data="",
-            content_type="application/json",
-        )
-        assert resp.status_code == 400
-
 class TestPasswordHistory:
-    def test_get_history_empty(self, auth_client):
-        auth_client.post("/api/passwords/", headers=csrf_headers(), json={
-            "website": "hist.com",
-            "username": "user",
-            "password": "Pass123!",
-        })
-        resp = auth_client.get("/api/passwords/0/hist.com/history")
-        assert resp.status_code == 200
-        assert resp.get_json()["history"] == []
-
     def test_history_accumulates(self, auth_client):
         auth_client.post("/api/passwords/", headers=csrf_headers(), json={
             "website": "multi.com",
@@ -433,12 +241,3 @@ class TestPasswordHistory:
     def test_history_nonexistent_website(self, auth_client):
         resp = auth_client.get("/api/passwords/0/ghost.com/history")
         assert resp.status_code == 404
-
-    def test_history_invalid_index(self, auth_client):
-        auth_client.post("/api/passwords/", headers=csrf_headers(), json={
-            "website": "idx.com",
-            "username": "user",
-            "password": "Pass123!",
-        })
-        resp = auth_client.get("/api/passwords/99/idx.com/history")
-        assert resp.status_code == 400

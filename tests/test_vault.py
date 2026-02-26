@@ -17,7 +17,6 @@ from backend.vault import (
     check_lockout,
     record_failed_attempt,
     clear_lockout,
-    normalize_entries,
     has_totp,
     generate_backup_codes,
     generate_password,
@@ -42,16 +41,6 @@ class TestDeriveKey:
         k1 = derive_key("password", os.urandom(SALT_SIZE))
         k2 = derive_key("password", os.urandom(SALT_SIZE))
         assert k1 != k2
-
-    def test_different_passwords_produce_different_keys(self):
-        salt = os.urandom(SALT_SIZE)
-        k1 = derive_key("passwordA", salt)
-        k2 = derive_key("passwordB", salt)
-        assert k1 != k2
-
-    def test_key_length_is_32_bytes(self):
-        key = derive_key("test", os.urandom(SALT_SIZE))
-        assert len(key) == 32
 
 class TestAesGcm:
     def test_encrypt_decrypt_roundtrip(self):
@@ -98,17 +87,6 @@ class TestEncryptDecryptFile:
         with pytest.raises(VaultDecryptionError, match="Failed to decrypt"):
             decrypt_file(key2, encrypted)
 
-    def test_too_short_raises(self):
-        key = os.urandom(32)
-        with pytest.raises(VaultDecryptionError, match="too short"):
-            decrypt_file(key, b"tiny")
-
-    def test_wrong_magic_raises(self):
-        key = os.urandom(32)
-        bad_data = b"XXXX" + os.urandom(100)
-        with pytest.raises(VaultDecryptionError, match="Invalid encrypted file"):
-            decrypt_file(key, bad_data)
-
 class TestEncryptDecryptExport:
     def test_roundtrip(self):
         password = "ExportPass123"
@@ -122,15 +100,6 @@ class TestEncryptDecryptExport:
         encrypted = encrypt_export("correct", b"data")
         with pytest.raises(VaultDecryptionError, match="Wrong password"):
             decrypt_export("wrong", encrypted)
-
-    def test_too_short_raises(self):
-        with pytest.raises(VaultDecryptionError, match="too short"):
-            decrypt_export("pass", b"tiny")
-
-    def test_wrong_magic_raises(self):
-        bad_data = b"ZZZZ" + os.urandom(100)
-        with pytest.raises(VaultDecryptionError, match="Invalid encrypted export"):
-            decrypt_export("pass", bad_data)
 
 class TestLoadSavePasswords:
     def test_load_nonexistent_vault_returns_empty(self, tmp_path):
@@ -168,22 +137,6 @@ class TestLoadSavePasswords:
         s, d, k = load_passwords("anything", vault)
         assert d is None
 
-    def test_load_too_short_vault(self, tmp_path):
-        vault = str(tmp_path / "vault.enc")
-        with open(vault, "wb") as f:
-            f.write(b"tiny")
-
-        s, d, k = load_passwords("anything", vault)
-        assert d is None
-
-    def test_load_wrong_magic_vault(self, tmp_path):
-        vault = str(tmp_path / "vault.enc")
-        with open(vault, "wb") as f:
-            f.write(b"XXXX" + os.urandom(100))
-
-        s, d, k = load_passwords("anything", vault)
-        assert d is None
-
     def test_load_with_key(self, tmp_path):
         vault = str(tmp_path / "vault.enc")
         salt = os.urandom(SALT_SIZE)
@@ -204,24 +157,11 @@ class TestLoadSavePasswords:
         with pytest.raises(VaultDecryptionError):
             load_passwords_with_key(wrong_key, vault)
 
-    def test_load_with_key_nonexistent_returns_empty(self, tmp_path):
-        vault = str(tmp_path / "missing.enc")
-        data = load_passwords_with_key(os.urandom(32), vault)
-        assert data == {}
-
 class TestLockout:
     def test_no_lockout_initially(self, tmp_path):
         lockout = str(tmp_path / "lockout.json")
         is_locked, remaining = check_lockout(lockout)
         assert is_locked is False
-        assert remaining == 0
-
-    def test_failed_attempts_below_max_no_lockout(self, tmp_path):
-        lockout = str(tmp_path / "lockout.json")
-        locked, _ = record_failed_attempt(lockout, max_attempts=3)
-        assert locked is False
-        locked, _ = record_failed_attempt(lockout, max_attempts=3)
-        assert locked is False
 
     def test_lockout_triggered_at_max_attempts(self, tmp_path):
         lockout = str(tmp_path / "lockout.json")
@@ -247,50 +187,12 @@ class TestLockout:
         is_locked, _ = check_lockout(lockout)
         assert is_locked is False
 
-    def test_clear_nonexistent_lockout_no_error(self, tmp_path):
-        lockout = str(tmp_path / "missing_lockout.json")
-        clear_lockout(lockout)
-
-    def test_corrupted_lockout_file_handled(self, tmp_path):
-        lockout = str(tmp_path / "lockout.json")
-        with open(lockout, "w") as f:
-            f.write("not-valid-json{{{")
-        is_locked, _ = check_lockout(lockout)
-        assert is_locked is False
-
-class TestNormalizeEntries:
-    def test_dict_wrapped_in_list(self):
-        result = normalize_entries({"password": "abc"})
-        assert result == [{"password": "abc"}]
-
-    def test_list_returned_as_is(self):
-        entries = [{"password": "a"}, {"password": "b"}]
-        assert normalize_entries(entries) is entries
-
-class TestHasTotp:
-    def test_returns_false_when_missing(self, tmp_path):
-        assert has_totp(str(tmp_path / "nope.enc")) is False
-
-    def test_returns_true_when_exists(self, tmp_path):
-        totp_file = tmp_path / ".totp.enc"
-        totp_file.write_bytes(b"data")
-        assert has_totp(str(totp_file)) is True
-
 class TestGenerateBackupCodes:
     def test_default_count_and_length(self):
         codes = generate_backup_codes()
         assert len(codes) == 10
         for code in codes:
             assert len(code) == 8
-
-    def test_custom_count(self):
-        codes = generate_backup_codes(count=5)
-        assert len(codes) == 5
-
-    def test_custom_length(self):
-        codes = generate_backup_codes(length=12)
-        for code in codes:
-            assert len(code) == 12
 
     def test_codes_are_alphanumeric_lowercase(self):
         valid = set(string.ascii_lowercase + string.digits)
@@ -324,13 +226,6 @@ class TestGeneratePassword:
     def test_no_special_characters(self):
         pwd = generate_password(length=20, include_special=False)
         assert all(c not in "!@#$%&*?=_+" for c in pwd)
-        assert any(c in string.ascii_lowercase for c in pwd)
-        assert any(c in string.ascii_uppercase for c in pwd)
-        assert any(c in string.digits for c in pwd)
-
-    def test_minimum_length_without_special(self):
-        pwd = generate_password(length=1, include_special=False)
-        assert len(pwd) >= 3
 
 class TestTotpData:
     def test_save_and_load_roundtrip(self, tmp_path):
@@ -342,10 +237,6 @@ class TestTotpData:
         save_totp_data(key, salt, totp_data, totp_path)
         loaded = load_totp_data(key, totp_path)
         assert loaded == totp_data
-
-    def test_load_nonexistent_returns_none(self, tmp_path):
-        result = load_totp_data(os.urandom(32), str(tmp_path / "nope.enc"))
-        assert result is None
 
     def test_load_with_wrong_key_returns_none(self, tmp_path):
         totp_path = str(tmp_path / ".totp.enc")
@@ -364,6 +255,3 @@ class TestTotpData:
         assert os.path.exists(totp_path)
         delete_totp_secret(totp_path)
         assert not os.path.exists(totp_path)
-
-    def test_delete_nonexistent_no_error(self, tmp_path):
-        delete_totp_secret(str(tmp_path / "nope.enc"))

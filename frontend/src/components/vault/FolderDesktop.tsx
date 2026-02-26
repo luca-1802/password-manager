@@ -17,6 +17,7 @@ import {
   Check,
   X,
   GripVertical,
+  History,
 } from "lucide-react";
 import { cn, getLetterColor, LETTER_COLORS, getFolderColor, setFolderColor, renameFolderColor, deleteFolderColor } from "../../lib/utils";
 import type { FolderFilter, VaultItem } from "../../types";
@@ -35,6 +36,7 @@ interface FolderDesktopProps {
   onDelete: (name: string) => Promise<unknown>;
   onAdd: (type: "password" | "note" | "file") => void;
   getBreachCount?: (website: string, index: number) => number | null | undefined;
+  onHistory?: () => void;
 }
 
 function DroppableCard({
@@ -190,6 +192,7 @@ export default function FolderDesktop({
   onDelete,
   onAdd,
   getBreachCount,
+  onHistory,
 }: FolderDesktopProps) {
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
@@ -315,6 +318,21 @@ export default function FolderDesktop({
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
+              {onHistory && (
+                <button
+                  onClick={onHistory}
+                  className={cn(
+                    "flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200",
+                    "border",
+                    "bg-surface-sunken/60 text-text-secondary border-border-subtle hover:text-text-primary hover:bg-surface-hover hover:border-border hover:shadow-sm",
+                    "active:scale-[0.97]"
+                  )}
+                  aria-label="Password history"
+                >
+                  <History className="w-4 h-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">History</span>
+                </button>
+              )}
               <div className="relative">
                 <button
                   onClick={() => { setCreating(!creating); setNewName(""); }}
