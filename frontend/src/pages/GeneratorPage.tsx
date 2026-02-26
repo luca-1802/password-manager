@@ -43,6 +43,7 @@ export default function GeneratorPage({ onLogout }: Props) {
     if (page === "vault") navigate("/vault");
     else if (page === "dashboard") navigate("/dashboard");
     else if (page === "settings") navigate("/settings");
+    else if (page === "trash") navigate("/trash");
   };
 
   const handleGenerate = useCallback(async () => {

@@ -62,10 +62,8 @@ class Config:
     LOCKOUT_FILE = os.path.join(_DATA_DIR, ".vault.lock")
     TOTP_LOCKOUT_FILE = os.path.join(_DATA_DIR, ".totp_lockout.json")
     TOTP_USED_CODES_FILE = os.path.join(_DATA_DIR, ".totp_used_codes.json")
-    BACKUP_DIR = os.environ.get("BACKUP_DIR", os.path.join(_DATA_DIR, "backups"))
-    BACKUP_MAX_COUNT = int(os.environ.get("BACKUP_MAX_COUNT", "20"))
-    BACKUP_RETENTION_DAYS = int(os.environ.get("BACKUP_RETENTION_DAYS", "0"))
     MAX_LOGIN_ATTEMPTS = 3
     MAX_2FA_ATTEMPTS = 5
     MIN_MASTER_PWD_LENGTH = 12
     INACTIVITY_TIMEOUT = 300
+    TRASH_RETENTION_DAYS = int(os.environ.get("TRASH_RETENTION_DAYS", "30"))

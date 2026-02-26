@@ -42,7 +42,7 @@ export default function AddFileModal({ open, onClose, onSaved, folders, defaultF
   const folderOptions = useMemo(() => [
     { value: "", label: "None" },
     ...folders.map((f) => ({ value: f, label: f, icon: <FolderOpen className="w-3.5 h-3.5 text-text-muted" /> })),
-    { value: "__new__", label: "+ New folder...", icon: <Plus className="w-3.5 h-3.5 text-accent" /> },
+    { value: "__new__", label: "New folder...", icon: <Plus className="w-3.5 h-3.5 text-accent" /> },
   ], [folders]);
 
   const handleFileSelect = (selectedFile: File | null) => {

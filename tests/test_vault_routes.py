@@ -30,6 +30,7 @@ class TestValidateWebsite:
         assert validate_website("_folders_meta") is False
         assert validate_website("_notes") is False
         assert validate_website("_files") is False
+        assert validate_website("_trash") is False
 
     def test_special_characters_rejected(self):
         assert validate_website("site<script>") is False
@@ -105,6 +106,24 @@ class TestGetAll:
         data = resp.get_json()
         assert data["passwords"] == {}
         assert data["folders"] == []
+
+    def test_get_all_returns_trash_count(self, auth_client):
+        # Empty vault should have trash_count 0
+        resp = auth_client.get("/api/passwords/")
+        data = resp.get_json()
+        assert "trash_count" in data
+        assert data["trash_count"] == 0
+
+        # After deleting an entry, trash_count should be 1
+        auth_client.post("/api/passwords/", headers=csrf_headers(), json={
+            "website": "countme.com",
+            "username": "user",
+            "password": "Count123!",
+        })
+        auth_client.delete("/api/passwords/0/countme.com", headers=csrf_headers())
+        resp = auth_client.get("/api/passwords/")
+        data = resp.get_json()
+        assert data["trash_count"] == 1
 
     def test_unauthenticated_rejected(self, client):
         resp = client.get("/api/passwords/")
@@ -237,6 +256,28 @@ class TestDeleteEntry:
 
         vault = auth_client.get("/api/passwords/").get_json()
         assert "delete-me.com" not in vault["passwords"]
+
+    def test_delete_moves_to_trash(self, auth_client):
+        auth_client.post("/api/passwords/", headers=csrf_headers(), json={
+            "website": "trash-target.com",
+            "username": "trashuser",
+            "password": "TrashPass123!",
+        })
+        auth_client.delete("/api/passwords/0/trash-target.com", headers=csrf_headers())
+
+        # Verify entry is gone from passwords
+        vault = auth_client.get("/api/passwords/").get_json()
+        assert "trash-target.com" not in vault["passwords"]
+
+        # Verify entry appears in trash
+        trash_resp = auth_client.get("/api/trash/")
+        trash_data = trash_resp.get_json()
+        assert trash_data["count"] == 1
+        item = trash_data["items"][0]
+        assert item["entry_type"] == "password"
+        assert item["original_key"] == "trash-target.com"
+        assert item["entry"]["username"] == "trashuser"
+        assert item["entry"]["password"] == "TrashPass123!"
 
     def test_delete_nonexistent_website(self, auth_client):
         resp = auth_client.delete("/api/passwords/0/nonexistent.com", headers=csrf_headers())

@@ -1,4 +1,4 @@
-import type { ApiResponse } from "./types";
+import type { ApiResponse, TrashResponse } from "./types";
 
 const API_BASE = "/api";
 
@@ -113,18 +113,28 @@ export async function apiUploadFileWithFields(
   return { ok: res.ok, status: res.status, data };
 }
 
+export async function fetchTrash() {
+  return apiFetch<TrashResponse>("/trash/");
+}
+
+export async function restoreTrashItem(trashId: string) {
+  return apiFetch("/trash/" + trashId + "/restore", { method: "POST" });
+}
+
+export async function permanentDeleteTrashItem(trashId: string) {
+  return apiFetch("/trash/" + trashId, { method: "DELETE" });
+}
+
+export async function emptyTrash() {
+  return apiFetch("/trash/", { method: "DELETE" });
+}
+
 export async function fetchBackups() {
-  return apiFetch<{
-    vault_backups: Array<{ filename: string; timestamp: string; size: number }>;
-    totp_backups: Array<{ filename: string; timestamp: string; size: number }>;
-  }>("/backups/");
+  return apiFetch<{ vault_backups: Array<{ filename: string; timestamp: string; size: number }>; totp_backups: Array<{ filename: string; timestamp: string; size: number }> }>("/backups/");
 }
 
 export async function restoreBackup(filename: string, target: "vault" | "totp") {
-  return apiFetch("/backups/restore", {
-    method: "POST",
-    body: { filename, target },
-  });
+  return apiFetch("/backups/restore", { method: "POST", body: { filename, target } });
 }
 
 export async function apiFetchRaw(

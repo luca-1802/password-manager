@@ -61,17 +61,6 @@ export interface ApiResponse<T = Record<string, unknown>> {
   data: T;
 }
 
-export interface BackupEntry {
-  filename: string;
-  timestamp: string;
-  size: number;
-}
-
-export interface BackupsResponse {
-  vault_backups: BackupEntry[];
-  totp_backups: BackupEntry[];
-}
-
 export interface BreachCheckResponse {
   results: Record<string, number>;
   total_checked: number;
@@ -125,4 +114,18 @@ export interface ActionableItem {
   description: string;
   count: number;
   action: () => void;
+}
+
+export interface TrashItem {
+  id: string;
+  entry_type: VaultItemType;
+  original_key: string;
+  entry: Credential | SecureNote | SecureFile;
+  deleted_at: string;
+  expires_at: string;
+}
+
+export interface TrashResponse {
+  items: TrashItem[];
+  count: number;
 }

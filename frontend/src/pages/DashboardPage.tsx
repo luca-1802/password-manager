@@ -38,6 +38,7 @@ export default function DashboardPage({ onLogout }: Props) {
     if (page === "vault") navigate("/vault");
     else if (page === "settings") navigate("/settings");
     else if (page === "generator") navigate("/generator");
+    else if (page === "trash") navigate("/trash");
   };
 
   const handleCheckBreaches = async () => {

@@ -40,7 +40,7 @@ def require_auth(f):
         return f(*args, **kwargs)
     return decorated
 
-RESERVED_KEYS = {"_folders_meta", "_notes", "_files"}
+RESERVED_KEYS = {"_folders_meta", "_notes", "_files", "_trash"}
 
 def validate_website(website):
     if not website or len(website) > MAX_WEBSITE_LENGTH:
@@ -100,6 +100,8 @@ def validate_recovery_questions(questions):
 def count_existing_folders(passwords):
     folders = set()
     for key, entries in passwords.items():
+        if key == "_trash":
+            continue
         if key == "_folders_meta":
             if isinstance(entries, list):
                 folders.update(entries)
@@ -154,7 +156,7 @@ def get_all():
     filtered = {k: v for k, v in passwords.items() if k not in RESERVED_KEYS}
     all_folders = sorted(count_existing_folders(passwords))
     files_data = passwords.get("_files", {})
-    return jsonify({"passwords": filtered, "notes": notes_data, "files": files_data, "folders": all_folders})
+    return jsonify({"passwords": filtered, "notes": notes_data, "files": files_data, "folders": all_folders, "trash_count": len(passwords.get("_trash", []))})
 
 @vault_bp.route("/", methods=["POST"])
 @require_auth
@@ -287,7 +289,11 @@ def delete_entry(index, website):
             if index < 0 or index >= len(entries):
                 return jsonify({"error": "Invalid index"}), 400
 
-            entries.pop(index)
+            popped_entry = entries.pop(index)
+            from backend.routes.trash_routes import create_trash_item
+            trash_item = create_trash_item("password", website, popped_entry)
+            passwords.setdefault("_trash", []).append(trash_item)
+
             if not entries:
                 del passwords[website]
             else:

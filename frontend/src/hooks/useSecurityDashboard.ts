@@ -85,15 +85,27 @@ export function useSecurityDashboard(
       .filter(([_, sites]) => sites.length > 1)
       .map(([password, sites]) => ({ password: password.slice(0, 2) + "***", sites }));
 
-    const avgStrength = totalPasswords > 0 ? (strengthSum / totalPasswords) / 4 : 1;
     const totalChecked = breachedCount + safeCount;
-    const breachFreeRate = totalChecked > 0 ? safeCount / totalChecked : 1;
     const totalUnique = passwordMap.size;
-    const uniquenessRate = totalPasswords > 0 ? totalUnique / totalPasswords : 1;
-
-    const overallScore = Math.round(
-      (avgStrength * 40 + breachFreeRate * 40 + uniquenessRate * 20)
-    );
+    const safePasswords = totalPasswords - breachedCount;
+    const safeStrengthSum = (() => {
+      let sum = 0;
+      for (const [website, creds] of Object.entries(passwords)) {
+        creds.forEach((cred, index) => {
+          const key = `${website}:${index}`;
+          const isBreach = breachResults && breachResults[key] !== undefined && breachResults[key] > 0;
+          if (!isBreach) {
+            sum += calculatePasswordStrength(cred.password).level;
+          }
+        });
+      }
+      return sum;
+    })();
+    const avgStrength = safePasswords > 0 ? (safeStrengthSum / safePasswords) / 4 : 1;
+    const uniquenessRate = safePasswords > 0 ? Math.min(totalUnique, safePasswords) / safePasswords : 1;
+    const baseScore = avgStrength * 50 + uniquenessRate * 50;
+    const safeRate = totalPasswords > 0 ? safePasswords / totalPasswords : 1;
+    const overallScore = Math.round(baseScore * safeRate);
 
     const uncheckedCount = totalPasswords - totalChecked;
 

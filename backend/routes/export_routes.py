@@ -46,7 +46,7 @@ def export_passwords():
 
     rows = []
     for website, entries in passwords.items():
-        if website in ("_folders_meta", "_notes"):
+        if website in ("_folders_meta", "_notes", "_files", "_trash"):
             continue
         for entry in normalize_entries(entries):
             entry_folder = entry.get("folder") or None

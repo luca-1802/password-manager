@@ -34,8 +34,8 @@ export default function StrengthDistribution({ distribution, total }: StrengthDi
   }
 
   return (
-    <div className="space-y-5" role="img" aria-label={`Password strength distribution: ${segments.map(s => `${s.label}: ${distribution[s.key]}`).join(", ")}`}>
-      <div className="flex h-4 rounded-full overflow-hidden bg-surface-sunken border border-border/50" aria-hidden="true">
+    <div className="space-y-4" role="img" aria-label={`Password strength distribution: ${segments.map(s => `${s.label}: ${distribution[s.key]}`).join(", ")}`}>
+      <div className="flex h-3 rounded-full overflow-hidden bg-surface-sunken border border-border/50" aria-hidden="true">
         {segments.map(({ key, color }) => {
           const count = distribution[key];
           if (count === 0) return null;
@@ -51,28 +51,28 @@ export default function StrengthDistribution({ distribution, total }: StrengthDi
         })}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
         {segments.map(({ key, label, color, bg, text }) => {
           const count = distribution[key];
           const pct = total > 0 ? Math.round((count / total) * 100) : 0;
 
           return (
-            <div key={key} className={`flex flex-col p-3 rounded-xl border border-border/50 transition-all duration-300 hover:scale-[1.02] ${count > 0 ? bg : 'bg-surface-sunken opacity-50'}`}>
-              <div className="flex items-center gap-2 mb-1">
+            <div key={key} className={`flex flex-col p-2.5 rounded-lg border border-border/50 transition-all duration-300 hover:scale-[1.02] ${count > 0 ? bg : 'bg-surface-sunken opacity-50'}`}>
+              <div className="flex items-center gap-1.5 mb-0.5">
                 <div
-                  className="w-2.5 h-2.5 rounded-full shadow-sm"
+                  className="w-2 h-2 rounded-full shadow-sm"
                   style={{ backgroundColor: color, boxShadow: count > 0 ? `0 0 6px ${color}40` : "none" }}
                 />
-                <span className="text-xs font-medium text-text-secondary">
+                <span className="text-[11px] font-medium text-text-secondary">
                   {label}
                 </span>
               </div>
-              <div className="flex items-baseline gap-1.5 mt-1">
+              <div className="flex items-baseline gap-1 mt-0.5">
                 <AnimatedCount
                   value={count}
-                  className={`text-lg font-semibold tabular-nums ${count > 0 ? text : 'text-text-muted'}`}
+                  className={`text-base font-semibold tabular-nums ${count > 0 ? text : 'text-text-muted'}`}
                 />
-                <span className="text-xs text-text-muted">({pct}%)</span>
+                <span className="text-[10px] text-text-muted">({pct}%)</span>
               </div>
             </div>
           );

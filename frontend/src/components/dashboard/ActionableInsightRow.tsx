@@ -66,23 +66,23 @@ export default function ActionableInsightRow({
     <div className={cn("rounded-xl border overflow-hidden transition-all duration-200", expanded ? "shadow-md" : "shadow-sm", config.bg, config.border)}>
       <div
         className={cn(
-          "flex items-center gap-4 p-4",
+          "flex items-center gap-3 px-3.5 py-3",
           hasDetails && "cursor-pointer"
         )}
         onClick={() => hasDetails && setExpanded(!expanded)}
       >
-        <div className={cn("p-2.5 rounded-lg", config.bg)}>
-          <Icon className={cn("w-5 h-5 flex-shrink-0", config.color)} />
+        <div className={cn("p-2 rounded-lg", config.bg)}>
+          <Icon className={cn("w-4 h-4 flex-shrink-0", config.color)} />
         </div>
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="text-base font-semibold text-text-primary">{title}</p>
-            <span className={cn("text-xs font-bold px-2 py-0.5 rounded-full", config.bg, config.color)}>
+            <p className="text-sm font-semibold text-text-primary">{title}</p>
+            <span className={cn("text-[11px] font-bold px-1.5 py-0.5 rounded-full", config.bg, config.color)}>
               {count}
             </span>
           </div>
-          <p className="text-sm text-text-muted mt-0.5">{description}</p>
+          <p className="text-xs text-text-muted mt-0.5">{description}</p>
         </div>
         
         <div className="flex items-center gap-2">

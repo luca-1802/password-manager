@@ -1,4 +1,4 @@
-import { KeyRound, LayoutDashboard, Wand2, Settings } from "lucide-react";
+import { KeyRound, LayoutDashboard, Wand2, Settings, Trash2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 interface BottomNavProps {
@@ -11,6 +11,7 @@ const navItems = [
   { id: "dashboard", label: "Security", icon: LayoutDashboard },
   { id: "generator", label: "Generator", icon: Wand2 },
   { id: "settings", label: "Settings", icon: Settings },
+  { id: "trash", label: "Trash", icon: Trash2 },
 ] as const;
 
 export default function BottomNav({ activePage, onNavigate }: BottomNavProps) {

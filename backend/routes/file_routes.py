@@ -13,6 +13,7 @@ from backend.routes.vault_routes import (
     MAX_FILE_DESCRIPTION_LENGTH,
 )
 from backend.vault import load_passwords_with_key, encrypt_file, decrypt_file, VaultDecryptionError
+from backend.routes.trash_routes import create_trash_item
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,8 @@ def _count_total_files(passwords):
 def _count_total_entries(passwords):
     total = 0
     for key, value in passwords.items():
+        if key == "_trash":
+            continue
         if key == "_folders_meta":
             continue
         if key == "_notes":
@@ -346,21 +349,9 @@ def delete_file(index, label):
             if index < 0 or index >= len(entries):
                 return jsonify({"error": "Invalid index"}), 400
 
-            entry = entries[index]
-            file_id = entry.get("file_id")
-
-            if file_id:
-                files_dir = _get_files_dir()
-                enc_path = os.path.join(files_dir, f"{file_id}.enc")
-                real_path = os.path.realpath(enc_path)
-                real_dir = os.path.realpath(files_dir)
-                if real_path.startswith(real_dir + os.sep) and os.path.exists(enc_path):
-                    try:
-                        os.remove(enc_path)
-                    except OSError as e:
-                        logger.warning("Could not delete encrypted file %s: %s", file_id, e)
-
-            entries.pop(index)
+            popped_entry = entries.pop(index)
+            trash_item = create_trash_item("file", label, popped_entry)
+            passwords.setdefault("_trash", []).append(trash_item)
             if not entries:
                 del files_data[label]
             else:

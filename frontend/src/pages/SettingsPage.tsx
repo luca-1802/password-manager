@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Monitor, Upload, Download, Palette, KeyRound, Sun, Moon, Rows3, Type, History } from "lucide-react";
+import { Shield, Monitor, Upload, Download, Palette, KeyRound, Sun, Moon, Rows3, Type } from "lucide-react";
 import { apiFetch } from "../api";
 import type { TotpStatusResponse } from "../types";
 import { usePasswords } from "../hooks/usePasswords";
@@ -23,7 +23,6 @@ import TwoFactorSetupModal from "../components/vault/TwoFactorSetupModal";
 import ImportModal from "../components/vault/ImportModal";
 import ExportModal from "../components/vault/ExportModal";
 import ChangePasswordModal from "../components/vault/ChangePasswordModal";
-import BackupModal from "../components/vault/BackupModal";
 
 const themeModeOptions: SelectOption[] = [
   { value: "light", label: "Light" },
@@ -65,7 +64,6 @@ export default function SettingsPage({ onLogout }: Props) {
   const [showImport, setShowImport] = useState(false);
   const [show2FA, setShow2FA] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const [showBackups, setShowBackups] = useState(false);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [backupCodesRemaining, setBackupCodesRemaining] = useState(0);
 
@@ -90,6 +88,7 @@ export default function SettingsPage({ onLogout }: Props) {
     if (page === "vault") navigate("/vault");
     else if (page === "dashboard") navigate("/dashboard");
     else if (page === "generator") navigate("/generator");
+    else if (page === "trash") navigate("/trash");
   };
 
   return (
@@ -376,29 +375,6 @@ export default function SettingsPage({ onLogout }: Props) {
                 Export
               </Button>
             </div>
-
-            <div className="border-t border-border" />
-
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-start gap-4">
-                <div className="p-2.5 rounded-xl mt-1 bg-surface-sunken text-text-muted">
-                  <History className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-sm text-text-primary">Vault backups</p>
-                  <p className="text-xs text-text-muted">
-                    View and restore automatic vault backups
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowBackups(true)}
-              >
-                Manage
-              </Button>
-            </div>
           </div>
         </section>
       </div>
@@ -428,11 +404,6 @@ export default function SettingsPage({ onLogout }: Props) {
         open={showChangePassword}
         onClose={() => setShowChangePassword(false)}
         onLogout={onLogout}
-      />
-
-      <BackupModal
-        open={showBackups}
-        onClose={() => setShowBackups(false)}
       />
 
     </AppShell>

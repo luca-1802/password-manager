@@ -7,16 +7,18 @@ export function usePasswords() {
   const [notes, setNotes] = useState<NotesMap>({});
   const [files, setFiles] = useState<FilesMap>({});
   const [serverFolders, setServerFolders] = useState<string[]>([]);
+  const [trashCount, setTrashCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchPasswords = useCallback(async () => {
     setLoading(true);
-    const res = await apiFetch<{ passwords: PasswordMap; notes: NotesMap; files: FilesMap; folders: string[] }>("/passwords/");
+    const res = await apiFetch<{ passwords: PasswordMap; notes: NotesMap; files: FilesMap; folders: string[]; trash_count?: number }>("/passwords/");
     if (res?.ok) {
       setPasswords(res.data.passwords);
       setNotes(res.data.notes ?? {});
       setFiles(res.data.files ?? {});
       setServerFolders(res.data.folders ?? []);
+      setTrashCount(res.data.trash_count ?? 0);
     }
     setLoading(false);
   }, []);
@@ -86,6 +88,7 @@ export function usePasswords() {
     notes,
     files,
     serverFolders,
+    trashCount,
     loading,
     fetchPasswords,
     addPassword,
