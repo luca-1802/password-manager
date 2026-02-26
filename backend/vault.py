@@ -118,6 +118,7 @@ def load_passwords_with_key(key_raw, vault_path):
         raise VaultDecryptionError("Failed to decrypt vault (invalid key or corrupted data)")
 
 def save_passwords_with_key(key_raw, salt, passwords_dict, vault_path):
+    from backend.backup import create_backup, prune_backups
     plaintext = json.dumps(passwords_dict).encode()
     nonce_and_ct = _aes_gcm_encrypt(key_raw, plaintext, VAULT_MAGIC)
     tmp_path = vault_path + ".tmp"
@@ -127,6 +128,8 @@ def save_passwords_with_key(key_raw, salt, passwords_dict, vault_path):
             f.write(VAULT_MAGIC)
             f.write(salt)
             f.write(nonce_and_ct)
+        create_backup(vault_path)
+        prune_backups(vault_path)
         os.replace(tmp_path, vault_path)
     except OSError as e:
         logger.error("Could not write vault file: %s", e)
@@ -217,6 +220,7 @@ def generate_backup_codes(count=10, length=8):
     ]
 
 def save_totp_data(key_raw, salt, totp_data, totp_path):
+    from backend.backup import create_backup, prune_backups
     plaintext = json.dumps(totp_data).encode()
     nonce_and_ct = _aes_gcm_encrypt(key_raw, plaintext, VAULT_MAGIC)
     tmp_path = totp_path + ".tmp"
@@ -226,6 +230,8 @@ def save_totp_data(key_raw, salt, totp_data, totp_path):
             f.write(VAULT_MAGIC)
             f.write(salt)
             f.write(nonce_and_ct)
+        create_backup(totp_path)
+        prune_backups(totp_path)
         os.replace(tmp_path, totp_path)
     except OSError as e:
         logger.error("Could not write TOTP file: %s", e)

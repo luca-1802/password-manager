@@ -113,6 +113,20 @@ export async function apiUploadFileWithFields(
   return { ok: res.ok, status: res.status, data };
 }
 
+export async function fetchBackups() {
+  return apiFetch<{
+    vault_backups: Array<{ filename: string; timestamp: string; size: number }>;
+    totp_backups: Array<{ filename: string; timestamp: string; size: number }>;
+  }>("/backups/");
+}
+
+export async function restoreBackup(filename: string, target: "vault" | "totp") {
+  return apiFetch("/backups/restore", {
+    method: "POST",
+    body: { filename, target },
+  });
+}
+
 export async function apiFetchRaw(
   path: string,
   options: FetchOptions = {}

@@ -61,6 +61,17 @@ export interface ApiResponse<T = Record<string, unknown>> {
   data: T;
 }
 
+export interface BackupEntry {
+  filename: string;
+  timestamp: string;
+  size: number;
+}
+
+export interface BackupsResponse {
+  vault_backups: BackupEntry[];
+  totp_backups: BackupEntry[];
+}
+
 export interface BreachCheckResponse {
   results: Record<string, number>;
   total_checked: number;

@@ -20,8 +20,7 @@ def create_app():
     app.config.from_object("backend.config.Config")
     Session(app)
 
-    session_dir = app.config["SESSION_FILE_DIR"]
-    os.makedirs(session_dir, exist_ok=True)
+    session_dir = app.config["SESSION_CACHELIB"]._path
     try:
         os.chmod(session_dir, stat.S_IRWXU)
     except OSError:
@@ -126,6 +125,7 @@ def create_app():
     from backend.routes.file_routes import file_bp
     from backend.routes.breach_routes import breach_bp
     from backend.routes.extension_routes import extension_bp
+    from backend.routes.backup_routes import backup_bp
     app.register_blueprint(extension_bp, url_prefix="/api/extension")
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(export_bp, url_prefix="/api/passwords/export")
@@ -137,6 +137,7 @@ def create_app():
     app.register_blueprint(util_bp, url_prefix="/api")
     app.register_blueprint(totp_bp, url_prefix="/api/auth/2fa")
     app.register_blueprint(breach_bp, url_prefix="/api/breach")
+    app.register_blueprint(backup_bp, url_prefix="/api/backups")
 
     @app.route("/", defaults={"path": ""})
     @app.route("/<path:path>")
