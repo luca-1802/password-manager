@@ -1,10 +1,5 @@
 import type { Credential } from "../types";
 
-interface CredentialMatch {
-  website: string;
-  credentials: Credential[];
-}
-
 interface PendingSave {
   domain: string;
   username: string;
