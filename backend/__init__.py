@@ -1,5 +1,4 @@
 import os
-import stat
 import time
 import logging
 import secrets
@@ -19,15 +18,6 @@ def create_app():
     app = Flask(__name__, static_folder=None)
     app.config.from_object("backend.config.Config")
     Session(app)
-
-    session_cache = app.config["SESSION_CACHELIB"]
-    session_dir = getattr(session_cache, "_path", None)
-    if session_dir:
-        os.makedirs(session_dir, exist_ok=True)
-        try:
-            os.chmod(session_dir, stat.S_IRWXU)
-        except OSError:
-            logger.warning("Could not set restrictive permissions on session directory: %s", session_dir)
 
     @app.before_request
     def token_auth():

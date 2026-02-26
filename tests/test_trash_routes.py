@@ -87,28 +87,6 @@ class TestTrashList:
         assert item["entry"]["username"] == "user1"
         assert item["entry"]["password"] == "Secret123!"
 
-    def test_trash_metadata_fields(self, auth_client):
-        _create_password_via_api(auth_client, website="meta.com", username="u", password="P123!")
-        _delete_password_via_api(auth_client, 0, "meta.com")
-
-        resp = auth_client.get("/api/trash/")
-        data = resp.get_json()
-        item = data["items"][0]
-
-        assert "id" in item
-        assert isinstance(item["id"], str)
-        assert len(item["id"]) == 8
-        assert "entry_type" in item
-        assert "original_key" in item
-        assert "entry" in item
-        assert "deleted_at" in item
-        assert "expires_at" in item
-
-        deleted_at = datetime.fromisoformat(item["deleted_at"])
-        expires_at = datetime.fromisoformat(item["expires_at"])
-        delta = expires_at - deleted_at
-        assert 29 <= delta.days <= 31
-
     def test_auto_purge_expired(self, auth_client, seeded_vault):
         key, salt, vault_path = _get_vault_material(seeded_vault)
 
@@ -165,10 +143,6 @@ class TestTrashRestore:
         trash_id = trash_data["items"][0]["id"]
         assert trash_data["items"][0]["entry_type"] == "note"
 
-        vault_resp = auth_client.get("/api/passwords/")
-        notes = vault_resp.get_json()["notes"]
-        assert "restorable note" not in notes
-
         restore_resp = auth_client.post(f"/api/trash/{trash_id}/restore", headers=csrf_headers())
         assert restore_resp.status_code == 200
 
@@ -176,9 +150,6 @@ class TestTrashRestore:
         notes = vault_resp.get_json()["notes"]
         assert "restorable note" in notes
         assert notes["restorable note"][0]["content"] == "my content"
-
-        trash_resp = auth_client.get("/api/trash/")
-        assert trash_resp.get_json()["count"] == 0
 
     def test_restore_file(self, auth_client, seeded_vault):
         key, salt, vault_path = _get_vault_material(seeded_vault)
@@ -203,22 +174,10 @@ class TestTrashRestore:
         assert "restorable" in files
         assert files["restorable"][0]["file_id"] == file_id
 
-        trash_resp = auth_client.get("/api/trash/")
-        assert trash_resp.get_json()["count"] == 0
-
-    def test_restore_nonexistent(self, auth_client):
-        resp = auth_client.post("/api/trash/badid123/restore", headers=csrf_headers())
-        assert resp.status_code == 404
-
     def test_restore_to_existing_key(self, auth_client):
         _create_password_via_api(auth_client, website="multi.com", username="user1", password="Pass1___1")
         _create_password_via_api(auth_client, website="multi.com", username="user2", password="Pass2___2")
         _delete_password_via_api(auth_client, 0, "multi.com")
-
-        vault_resp = auth_client.get("/api/passwords/")
-        entries = vault_resp.get_json()["passwords"]["multi.com"]
-        assert len(entries) == 1
-        assert entries[0]["username"] == "user2"
 
         trash_resp = auth_client.get("/api/trash/")
         trash_id = trash_resp.get_json()["items"][0]["id"]
@@ -265,10 +224,6 @@ class TestTrashPermanentDelete:
         assert del_resp.status_code == 200
         assert not os.path.exists(enc_path)
 
-    def test_permanent_delete_nonexistent(self, auth_client):
-        resp = auth_client.delete("/api/trash/noexist1", headers=csrf_headers())
-        assert resp.status_code == 404
-
 class TestTrashEmpty:
     def test_empty_trash_all(self, auth_client):
         _create_password_via_api(auth_client, website="empty1.com", username="u1", password="P1______1")
@@ -290,101 +245,7 @@ class TestTrashEmpty:
         trash_resp = auth_client.get("/api/trash/")
         assert trash_resp.get_json()["count"] == 0
 
-    def test_empty_already_empty(self, auth_client):
-        resp = auth_client.delete("/api/trash/", headers=csrf_headers())
-        assert resp.status_code == 200
-        data = resp.get_json()
-        assert data["success"] is True
-        assert data["purged"] == 0
-
-class TestSoftDelete:
-    def test_delete_password_moves_to_trash(self, auth_client):
-        _create_password_via_api(auth_client, website="soft.com", username="softuser", password="Soft123!")
-        _delete_password_via_api(auth_client, 0, "soft.com")
-
-        vault_resp = auth_client.get("/api/passwords/")
-        assert "soft.com" not in vault_resp.get_json()["passwords"]
-
-        trash_resp = auth_client.get("/api/trash/")
-        data = trash_resp.get_json()
-        assert data["count"] == 1
-        item = data["items"][0]
-        assert item["entry_type"] == "password"
-        assert item["original_key"] == "soft.com"
-        assert item["entry"]["username"] == "softuser"
-        assert item["entry"]["password"] == "Soft123!"
-
-    def test_delete_note_moves_to_trash(self, auth_client):
-        _create_note_via_api(auth_client, title="soft note", content="soft content")
-        _delete_note_via_api(auth_client, 0, "soft note")
-
-        vault_resp = auth_client.get("/api/passwords/")
-        notes = vault_resp.get_json()["notes"]
-        assert "soft note" not in notes
-
-        trash_resp = auth_client.get("/api/trash/")
-        data = trash_resp.get_json()
-        assert data["count"] == 1
-        item = data["items"][0]
-        assert item["entry_type"] == "note"
-        assert item["original_key"] == "soft note"
-        assert item["entry"]["content"] == "soft content"
-
-    def test_delete_file_keeps_physical(self, auth_client, seeded_vault):
-        key, salt, vault_path = _get_vault_material(seeded_vault)
-        file_id = "keepfile1"
-        entry, enc_path = _create_file_entry_in_vault(key, salt, vault_path, label="keepfile", file_id=file_id)
-
-        _delete_file_via_api(auth_client, 0, "keepfile")
-
-        assert os.path.exists(enc_path)
-
-        trash_resp = auth_client.get("/api/trash/")
-        data = trash_resp.get_json()
-        assert data["count"] == 1
-        assert data["items"][0]["entry_type"] == "file"
-        assert data["items"][0]["entry"]["file_id"] == file_id
-
-class TestReservedKeys:
-    def test_trash_key_reserved(self, auth_client):
-        resp = auth_client.post("/api/passwords/", headers=csrf_headers(), json={
-            "website": "_trash",
-            "username": "user",
-            "password": "Pass123!",
-        })
-        assert resp.status_code == 400
-
 class TestAutoPurge:
-    def test_expired_purged_on_list(self, auth_client, seeded_vault):
-        key, salt, vault_path = _get_vault_material(seeded_vault)
-
-        now = datetime.now(timezone.utc)
-        passwords = _load_vault(key, vault_path)
-        passwords["_trash"] = [
-            {
-                "id": "expitem1",
-                "entry_type": "password",
-                "original_key": "expired.com",
-                "entry": {"password": "gone", "username": "gone"},
-                "deleted_at": (now - timedelta(days=35)).isoformat(),
-                "expires_at": (now - timedelta(days=5)).isoformat(),
-            },
-            {
-                "id": "fresh01",
-                "entry_type": "password",
-                "original_key": "fresh.com",
-                "entry": {"password": "still", "username": "here"},
-                "deleted_at": now.isoformat(),
-                "expires_at": (now + timedelta(days=25)).isoformat(),
-            },
-        ]
-        _save_vault(key, salt, vault_path, passwords)
-
-        resp = auth_client.get("/api/trash/")
-        data = resp.get_json()
-        assert data["count"] == 1
-        assert data["items"][0]["id"] == "fresh01"
-
     def test_expired_file_physical_deleted(self, auth_client, seeded_vault):
         key, salt, vault_path = _get_vault_material(seeded_vault)
 

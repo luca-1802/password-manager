@@ -2,7 +2,7 @@ import os
 import stat
 import logging
 
-from cachelib import FileSystemCache
+from cachelib import SimpleCache
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import hashes
 
@@ -51,7 +51,7 @@ def get_session_encryption_key():
 class Config:
     SECRET_KEY = _get_or_create_secret_key()
     SESSION_TYPE = "cachelib"
-    SESSION_CACHELIB = FileSystemCache(os.path.join(_DATA_DIR, ".flask_sessions"))
+    SESSION_CACHELIB = SimpleCache()
     SESSION_PERMANENT = False
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Strict"
