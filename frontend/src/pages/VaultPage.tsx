@@ -440,6 +440,7 @@ export default function VaultPage({ onLogout }: Props) {
     if (page === "settings") navigate("/settings");
     else if (page === "dashboard") navigate("/dashboard");
     else if (page === "generator") navigate("/generator");
+    else if (page === "trash") navigate("/trash");
   };
 
   const cmdActions = useMemo(() => [

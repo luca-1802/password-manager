@@ -200,7 +200,23 @@ export default function FolderDesktop({
   const [renameValue, setRenameValue] = useState("");
   const createInputRef = useRef<HTMLInputElement>(null);
   const renameInputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as Element;
+      if (
+        menuRef.current && !menuRef.current.contains(target) &&
+        !target.closest("[data-menu-toggle]")
+      ) {
+        setMenuOpen(null);
+      }
+    };
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, [menuOpen]);
 
   useEffect(() => {
     if (creating && createInputRef.current) {
@@ -567,6 +583,7 @@ export default function FolderDesktop({
 
                     {!isRenaming && (
                       <button
+                        data-menu-toggle
                         onClick={(e) => {
                           e.stopPropagation();
                           setMenuOpen(menuOpen === folder ? null : folder);
@@ -588,15 +605,7 @@ export default function FolderDesktop({
                     )}
 
                     {menuOpen === folder && (
-                      <>
-                        <div
-                          className="fixed inset-0 z-40"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMenuOpen(null);
-                          }}
-                        />
-                        <div className="absolute top-10 right-2 w-36 bg-surface border border-border-subtle rounded-xl shadow-2xl z-50 py-1 overflow-hidden">
+                        <div ref={menuRef} className="absolute top-10 right-2 w-36 bg-surface border border-border-subtle rounded-xl shadow-2xl z-50 py-1 overflow-hidden">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -634,7 +643,6 @@ export default function FolderDesktop({
                             Delete
                           </button>
                         </div>
-                      </>
                     )}
                   </DroppableCard>
                 </motion.div>

@@ -1,8 +1,8 @@
-import { Lock, Shield, KeyRound, LayoutDashboard, Wand2, Settings } from "lucide-react";
+import { Lock, Shield, KeyRound, LayoutDashboard, Wand2, Settings, Trash2 } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 interface TopNavProps {
-  activePage: "vault" | "dashboard" | "generator" | "settings";
+  activePage: "vault" | "dashboard" | "generator" | "settings" | "trash";
   onNavigate: (page: string) => void;
   onLock: () => void;
   onSearch: () => void;
@@ -13,6 +13,7 @@ const navItems = [
   { id: "dashboard", label: "Security", icon: LayoutDashboard },
   { id: "generator", label: "Generator", icon: Wand2 },
   { id: "settings", label: "Settings", icon: Settings },
+  { id: "trash", label: "Trash", icon: Trash2 },
 ] as const;
 
 export default function TopNav({

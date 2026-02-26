@@ -10,6 +10,7 @@ import VaultPage from "./pages/VaultPage";
 import DashboardPage from "./pages/DashboardPage";
 import SettingsPage from "./pages/SettingsPage";
 import GeneratorPage from "./pages/GeneratorPage";
+import TrashPage from "./pages/TrashPage";
 
 const pageVariants = {
   initial: { opacity: 0, y: 6 },
@@ -124,6 +125,16 @@ function App() {
               element={
                 authState.authenticated ? (
                   <GeneratorPage onLogout={onLogout} />
+                ) : (
+                  <Navigate to="/" />
+                )
+              }
+            />
+            <Route
+              path="/trash"
+              element={
+                authState.authenticated ? (
+                  <TrashPage onLogout={onLogout} />
                 ) : (
                   <Navigate to="/" />
                 )

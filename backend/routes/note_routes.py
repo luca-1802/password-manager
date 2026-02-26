@@ -9,6 +9,7 @@ from backend.routes.vault_routes import (
     MAX_NOTE_CONTENT_LENGTH, MAX_FOLDERS,
 )
 from backend.vault import load_passwords_with_key
+from backend.routes.trash_routes import create_trash_item
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,8 @@ note_bp = Blueprint("notes", __name__)
 def _count_total_entries(passwords):
     total = 0
     for key, value in passwords.items():
+        if key == "_trash":
+            continue
         if key == "_folders_meta":
             continue
         if key == "_notes":
@@ -232,7 +235,10 @@ def delete_note(index, title):
             if index < 0 or index >= len(entries):
                 return jsonify({"error": "Invalid index"}), 400
 
-            entries.pop(index)
+            popped_entry = entries.pop(index)
+            trash_item = create_trash_item("note", title, popped_entry)
+            passwords.setdefault("_trash", []).append(trash_item)
+
             if not entries:
                 del notes_data[title]
             else:

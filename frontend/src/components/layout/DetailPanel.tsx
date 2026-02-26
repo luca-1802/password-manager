@@ -392,6 +392,7 @@ export default function DetailPanel({
                 )}
                 <Input label="Username" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} />
                 <Input label="Password" type="password" value={editPassword} onChange={(e) => setEditPasswordVal(e.target.value)} />
+                <PasswordStrengthIndicator password={editPassword} />
                 <div className="space-y-1.5">
                   <label htmlFor="edit-notes" className="block text-sm font-medium text-text-secondary">
                     Notes
@@ -574,10 +575,10 @@ export default function DetailPanel({
             variant={confirmDelete ? "danger" : "secondary"}
             className="flex-1"
             onClick={handleDelete}
-            aria-label={confirmDelete ? `Confirm delete ${item.key}` : `Delete ${item.key}`}
+            aria-label={confirmDelete ? `Confirm move ${item.key} to trash` : `Move ${item.key} to trash`}
           >
             <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" />
-            {confirmDelete ? "Confirm Delete" : "Delete"}
+            {confirmDelete ? "Confirm?" : "Move to Trash"}
           </Button>
         </div>
       )}

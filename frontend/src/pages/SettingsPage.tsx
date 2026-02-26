@@ -88,6 +88,7 @@ export default function SettingsPage({ onLogout }: Props) {
     if (page === "vault") navigate("/vault");
     else if (page === "dashboard") navigate("/dashboard");
     else if (page === "generator") navigate("/generator");
+    else if (page === "trash") navigate("/trash");
   };
 
   return (

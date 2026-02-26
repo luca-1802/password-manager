@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Wand2,
   Settings,
+  Trash2,
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-react";
@@ -23,7 +24,7 @@ interface SidebarProps {
   onCreateFolder: (name: string) => Promise<unknown>;
   onRenameFolder: (oldName: string, newName: string) => Promise<unknown>;
   onDeleteFolder: (name: string) => Promise<unknown>;
-  activePage: "vault" | "dashboard" | "generator" | "settings";
+  activePage: "vault" | "dashboard" | "generator" | "settings" | "trash";
   onNavigate: (page: string) => void;
   onLock: () => void;
   onSearch: () => void;
@@ -35,6 +36,7 @@ const navItems = [
   { id: "dashboard", label: "Security", icon: LayoutDashboard },
   { id: "generator", label: "Generator", icon: Wand2 },
   { id: "settings", label: "Settings", icon: Settings },
+  { id: "trash", label: "Trash", icon: Trash2 },
 ] as const;
 
 export default function Sidebar({

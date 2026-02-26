@@ -115,3 +115,17 @@ export interface ActionableItem {
   count: number;
   action: () => void;
 }
+
+export interface TrashItem {
+  id: string;
+  entry_type: VaultItemType;
+  original_key: string;
+  entry: Credential | SecureNote | SecureFile;
+  deleted_at: string;
+  expires_at: string;
+}
+
+export interface TrashResponse {
+  items: TrashItem[];
+  count: number;
+}

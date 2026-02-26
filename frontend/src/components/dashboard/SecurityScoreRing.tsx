@@ -69,10 +69,10 @@ export default function SecurityScoreRing({ score, size = 160 }: SecurityScoreRi
         </svg>
 
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface-raised rounded-full m-[12px] shadow-inner border border-border/30">
-          <span className="text-4xl font-bold text-text-primary tracking-tight tabular-nums">
+          <span className="text-3xl font-bold text-text-primary tracking-tight tabular-nums">
             {animatedScore}
           </span>
-          <span className="text-xs font-medium text-text-muted uppercase tracking-wider mt-1">Score</span>
+          <span className="text-[10px] font-medium text-text-muted uppercase tracking-wider mt-0.5">Score</span>
         </div>
       </div>
 

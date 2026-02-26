@@ -91,29 +91,29 @@ export default function SecurityDashboard({
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-8 py-8 sm:py-12">
-      <div className="mb-10">
-        <h1 className="text-3xl font-bold text-text-primary tracking-tight">
+    <div className="max-w-4xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-text-primary tracking-tight">
           Security Dashboard
         </h1>
-        <p className="text-text-secondary mt-2 text-lg">
+        <p className="text-text-secondary mt-1 text-sm">
           Monitor and improve the health of your password vault.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
-        <div className={`lg:col-span-4 bg-surface/50 backdrop-blur-sm border border-border-subtle rounded-3xl p-8 flex flex-col items-center justify-center shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group ${styles.gradientBorderCard}`}>
-          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-brand-primary to-brand-secondary opacity-70 group-hover:opacity-100 transition-opacity duration-300" />
-          <h3 className="text-lg font-semibold text-text-primary mb-8 self-start w-full">Overall Score</h3>
-          <SecurityScoreRing score={metrics.overallScore} size={200} />
-          <p className="text-sm text-text-secondary mt-8 text-center leading-relaxed">
-            Your score is based on password strength, reuse frequency, and known data breaches.
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-8">
+        <div className={`lg:col-span-4 bg-surface/50 backdrop-blur-sm border border-border-subtle rounded-2xl p-5 flex flex-col items-center justify-center shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group ${styles.gradientBorderCard}`}>
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-primary to-brand-secondary opacity-70 group-hover:opacity-100 transition-opacity duration-300" />
+          <h3 className="text-sm font-semibold text-text-primary mb-5 self-start w-full">Overall Score</h3>
+          <SecurityScoreRing score={metrics.overallScore} size={148} />
+          <p className="text-xs text-text-secondary mt-5 text-center leading-relaxed">
+            Based on strength, reuse, and breach data.
           </p>
         </div>
 
-        <div className="lg:col-span-8 flex flex-col gap-6">
-          <div className={`bg-surface/50 backdrop-blur-sm border border-border-subtle rounded-3xl p-8 shadow-sm hover:shadow-lg transition-all duration-300 ${styles.gradientBorderCard}`}>
-            <h3 className="text-lg font-semibold text-text-primary mb-6">
+        <div className="lg:col-span-8 flex flex-col gap-4">
+          <div className={`bg-surface/50 backdrop-blur-sm border border-border-subtle rounded-2xl p-5 shadow-sm hover:shadow-lg transition-all duration-300 ${styles.gradientBorderCard}`}>
+            <h3 className="text-sm font-semibold text-text-primary mb-4">
               Breach Monitoring
             </h3>
             <BreachSummaryCard
@@ -126,8 +126,8 @@ export default function SecurityDashboard({
             />
           </div>
 
-          <div className={`bg-surface/50 backdrop-blur-sm border border-border-subtle rounded-3xl p-8 shadow-sm hover:shadow-lg transition-all duration-300 flex-1 ${styles.gradientBorderCard}`}>
-            <h3 className="text-lg font-semibold text-text-primary mb-6">
+          <div className={`bg-surface/50 backdrop-blur-sm border border-border-subtle rounded-2xl p-5 shadow-sm hover:shadow-lg transition-all duration-300 flex-1 ${styles.gradientBorderCard}`}>
+            <h3 className="text-sm font-semibold text-text-primary mb-4">
               Password Strength Distribution
             </h3>
             <StrengthDistribution
@@ -139,16 +139,16 @@ export default function SecurityDashboard({
       </div>
 
       {actionableItems.length > 0 && (
-        <div className="mb-10" role="region" aria-label="Security issues">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-text-primary tracking-tight">
+        <div className="mb-6" role="region" aria-label="Security issues">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-bold text-text-primary tracking-tight">
               Actionable Insights
             </h2>
-            <span className="bg-surface-sunken text-text-secondary text-sm font-medium px-4 py-1.5 rounded-full border border-border-subtle shadow-sm" aria-live="polite">
+            <span className="bg-surface-sunken text-text-secondary text-xs font-medium px-3 py-1 rounded-full border border-border-subtle shadow-sm" aria-live="polite">
               {actionableItems.length} Issues Found
             </span>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {actionableItems.map((item) => (
               <ActionableInsightRow
                 key={item.id}
@@ -166,27 +166,27 @@ export default function SecurityDashboard({
       )}
 
       {metrics.totalPasswords === 0 && (
-        <div className="bg-surface/30 border border-border-subtle border-dashed rounded-3xl p-16 text-center">
-          <div className="w-20 h-20 bg-surface-sunken rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-            <ShieldCheck className="w-10 h-10 text-text-muted" aria-hidden="true" />
+        <div className="bg-surface/30 border border-border-subtle border-dashed rounded-2xl p-10 text-center">
+          <div className="w-14 h-14 bg-surface-sunken rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+            <ShieldCheck className="w-7 h-7 text-text-muted" aria-hidden="true" />
           </div>
-          <h3 className="text-xl font-semibold text-text-primary mb-3">Your vault is empty</h3>
-          <p className="text-text-secondary text-base max-w-md mx-auto">
-            Add some passwords to your vault to see security insights, breach monitoring, and strength analysis.
+          <h3 className="text-base font-semibold text-text-primary mb-2">Your vault is empty</h3>
+          <p className="text-text-secondary text-sm max-w-sm mx-auto">
+            Add some passwords to see security insights, breach monitoring, and strength analysis.
           </p>
         </div>
       )}
 
       {actionableItems.length === 0 && metrics.totalPasswords > 0 && (
-        <div className="bg-success/5 border border-success/20 rounded-3xl p-12 text-center shadow-sm">
-          <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-            <ShieldCheck className="w-10 h-10 text-success" aria-hidden="true" />
+        <div className="bg-success/5 border border-success/20 rounded-2xl p-8 text-center shadow-sm">
+          <div className="w-14 h-14 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+            <ShieldCheck className="w-7 h-7 text-success" aria-hidden="true" />
           </div>
-          <h3 className="text-2xl font-bold text-success mb-3">
+          <h3 className="text-lg font-bold text-success mb-2">
             Looking good!
           </h3>
-          <p className="text-text-secondary text-lg max-w-md mx-auto">
-            No immediate security issues found. Keep your passwords strong and unique to maintain a healthy vault.
+          <p className="text-text-secondary text-sm max-w-sm mx-auto">
+            No immediate security issues found. Keep your passwords strong and unique.
           </p>
         </div>
       )}

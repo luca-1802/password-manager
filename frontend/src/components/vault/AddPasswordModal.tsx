@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { Wand2, Eye, EyeOff, FolderOpen, Plus } from "lucide-react";
 import { apiFetch } from "../../api";
+import { cn } from "../../lib/utils";
 import Modal from "../ui/Modal";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 import Select from "../ui/Select";
 import { useToast } from "../ui/Toast";
 import { useClipboard } from "../../hooks/useClipboard";
-import ColoredPassword from "../ui/ColoredPassword";
 import PasswordStrengthIndicator from "../ui/PasswordStrengthIndicator";
 import RecoveryQuestionsSection from "./RecoveryQuestionsSection";
 import type { RecoveryQuestion } from "../../types";
@@ -41,7 +41,7 @@ export default function AddPasswordModal({ open, onClose, onSaved, folders, defa
   const folderOptions = useMemo(() => [
     { value: "", label: "None" },
     ...folders.map((f) => ({ value: f, label: f, icon: <FolderOpen className="w-3.5 h-3.5 text-text-muted" /> })),
-    { value: "__new__", label: "+ New folder...", icon: <Plus className="w-3.5 h-3.5 text-accent" /> },
+    { value: "__new__", label: "New folder...", icon: <Plus className="w-3.5 h-3.5 text-accent" /> },
   ], [folders]);
 
   const handleGenerate = async () => {
@@ -128,22 +128,17 @@ export default function AddPasswordModal({ open, onClose, onSaved, folders, defa
         <div className="flex gap-2 items-start">
           <div className="flex-1">
             <div className="relative">
-              {password && showPassword ? (
-                <div
-                  className="w-full bg-surface-sunken border border-border rounded-lg px-3 py-2.5 text-sm font-mono break-all min-h-[40px] flex items-center pr-10"
-                >
-                  <ColoredPassword password={password} />
-                </div>
-              ) : (
-                <input
-                  type="password"
-                  placeholder="Password (blank = auto-generate)"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="off"
-                  className="w-full bg-surface-sunken border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/20 transition-colors duration-150 pr-10"
-                />
-              )}
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password (blank = auto-generate)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="off"
+                className={cn(
+                  "w-full bg-surface-sunken border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/20 transition-colors duration-150 pr-10",
+                  password && showPassword && "font-mono"
+                )}
+              />
               {password && (
                 <button
                   type="button"
