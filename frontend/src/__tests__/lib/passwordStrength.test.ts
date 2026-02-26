@@ -1,4 +1,4 @@
-import { calculatePasswordStrength, type StrengthResult } from "../../lib/passwordStrength";
+import { calculatePasswordStrength } from "../../lib/passwordStrength";
 
 describe("calculatePasswordStrength", () => {
   it("returns level 0 for empty password", () => {

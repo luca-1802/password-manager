@@ -314,7 +314,7 @@ export default function HistoryPage({ onLogout }: Props) {
 
         {filtered.length > 0 && (
           <div className="space-y-3">
-            {filtered.map((entry, i) => {
+            {filtered.map((entry) => {
               const key = `${entry.website}-${entry.index}-${entry.changed_at}`;
               return (
                 <HistoryRow
