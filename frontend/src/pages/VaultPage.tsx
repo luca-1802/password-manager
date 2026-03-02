@@ -16,7 +16,7 @@ import { Plus, Wand2, FileText, Upload, LayoutDashboard, Settings as SettingsIco
 import { motion } from "framer-motion";
 import type { FolderFilter, RecoveryQuestion, VaultItem } from "../types";
 import { cn } from "../lib/utils";
-import { flattenVaultItems, filterVaultItems } from "../lib/vaultItems";
+import { flattenVaultItems, filterVaultItems, sortVaultItems } from "../lib/vaultItems";
 import { usePasswords } from "../hooks/usePasswords";
 import { useNotes } from "../hooks/useNotes";
 import { useFiles } from "../hooks/useFiles";
@@ -28,6 +28,7 @@ import { useInactivityTimeout } from "../hooks/useInactivityTimeout";
 import { useAutoLockOnHidden } from "../hooks/useAutoLockOnHidden";
 import { useVisibilityLock } from "../hooks/useVisibilityLock";
 import { useBreachCheck } from "../hooks/useBreachCheck";
+import { usePinning } from "../hooks/usePinning";
 import { useToast } from "../components/ui/Toast";
 import AppShell from "../components/layout/AppShell";
 import TopNav from "../components/layout/TopNav";
@@ -62,6 +63,7 @@ function FolderContentView({
   onSelectItem,
   getBreachCount,
   onAdd,
+  onTogglePin,
 }: {
   folderFilter: FolderFilter;
   items: VaultItem[];
@@ -71,6 +73,7 @@ function FolderContentView({
   onSelectItem: (item: VaultItem) => void;
   getBreachCount: (website: string, index: number) => number | null;
   onAdd: (type: "password" | "note" | "file") => void;
+  onTogglePin?: (item: VaultItem) => void;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: "folder-unfiled" });
   const [addMenuOpen, setAddMenuOpen] = useState(false);
@@ -233,6 +236,7 @@ function FolderContentView({
                       ? getBreachCount(item.key, item.index)
                       : null
                   }
+                  onTogglePin={onTogglePin}
                 />
               </motion.div>
             ))}
@@ -274,6 +278,7 @@ export default function VaultPage({ onLogout }: Props) {
   const { toast } = useToast();
   const { breachResults, checking: checkingBreaches, checkBreaches, clearBreachResults, getBreachCount } =
     useBreachCheck();
+  const { togglePin } = usePinning(fetchPasswords);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -326,12 +331,12 @@ export default function VaultPage({ onLogout }: Props) {
   }, [allItems, getBreachCount]);
 
   const unfiledItems = useMemo(
-    () => allItems.filter((item) => !item.folder),
+    () => sortVaultItems(allItems.filter((item) => !item.folder)),
     [allItems]
   );
 
   const filteredItems = useMemo(
-    () => filterVaultItems(allItems, search, folderFilter),
+    () => sortVaultItems(filterVaultItems(allItems, search, folderFilter)),
     [allItems, search, folderFilter]
   );
 
@@ -487,6 +492,13 @@ export default function VaultPage({ onLogout }: Props) {
     [downloadFile, allItems]
   );
 
+  const handleTogglePin = useCallback(
+    (item: VaultItem) => {
+      togglePin(item.type, item.key, item.index, !item.pinned);
+    },
+    [togglePin]
+  );
+
   return (
     <DndContext
       sensors={sensors}
@@ -527,6 +539,7 @@ export default function VaultPage({ onLogout }: Props) {
                   ? getBreachCount(selectedItem.key, selectedItem.index)
                   : undefined
               }
+              onTogglePin={handleTogglePin}
             />
           ) : undefined
         }
@@ -553,6 +566,7 @@ export default function VaultPage({ onLogout }: Props) {
               }}
               getBreachCount={getBreachCount}
               onHistory={() => navigate("/history")}
+              onTogglePin={handleTogglePin}
             />
           ) : (
             <FolderContentView
@@ -568,6 +582,7 @@ export default function VaultPage({ onLogout }: Props) {
                 else if (type === "file") setShowAddFile(true);
                 else setShowAdd(true);
               }}
+              onTogglePin={handleTogglePin}
             />
           )}
         </div>

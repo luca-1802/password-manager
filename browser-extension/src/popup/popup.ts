@@ -205,11 +205,12 @@ function renderCredentials(filter = ""): void {
   $credentialsList.innerHTML = "";
   const filterLower = filter.toLowerCase();
 
-  const domainMatches: { website: string; cred: Credential }[] = [];
-  const otherEntries: { website: string; cred: Credential }[] = [];
+  const domainMatches: { website: string; cred: Credential; credIndex: number }[] = [];
+  const otherEntries: { website: string; cred: Credential; credIndex: number }[] = [];
 
   for (const [website, entries] of Object.entries(allCredentials)) {
-    for (const cred of entries) {
+    for (let credIndex = 0; credIndex < entries.length; credIndex++) {
+      const cred = entries[credIndex];
       if (filterLower) {
         const matchText = `${website} ${cred.username}`.toLowerCase();
         if (!matchText.includes(filterLower)) continue;
@@ -225,12 +226,15 @@ function renderCredentials(filter = ""): void {
         (currentTabDomain.toLowerCase().includes(siteLower) ||
           siteLower.includes(domainBase))
       ) {
-        domainMatches.push({ website, cred });
+        domainMatches.push({ website, cred, credIndex });
       } else {
-        otherEntries.push({ website, cred });
+        otherEntries.push({ website, cred, credIndex });
       }
     }
   }
+
+  domainMatches.sort((a, b) => (b.cred.pinned ? 1 : 0) - (a.cred.pinned ? 1 : 0));
+  otherEntries.sort((a, b) => (b.cred.pinned ? 1 : 0) - (a.cred.pinned ? 1 : 0));
 
   const allItems = [...domainMatches, ...otherEntries];
   const totalCount = allItems.length;
@@ -254,7 +258,7 @@ function renderCredentials(filter = ""): void {
 
   for (let i = 0; i < pageItems.length; i++) {
     const globalIndex = start + i;
-    const { website, cred } = pageItems[i];
+    const { website, cred, credIndex } = pageItems[i];
     const isDomainMatch = globalIndex < domainMatchCount;
 
     if (isDomainMatch && !addedDomainHeader) {
@@ -275,7 +279,7 @@ function renderCredentials(filter = ""): void {
       }
     }
 
-    $credentialsList.appendChild(createCredItem(website, cred, isDomainMatch));
+    $credentialsList.appendChild(createCredItem(website, cred, credIndex, isDomainMatch));
   }
 
   if (totalPages > 1) {
@@ -314,10 +318,27 @@ function renderCredentials(filter = ""): void {
 function createCredItem(
   website: string,
   cred: Credential,
+  credIndex: number,
   isDomainMatch: boolean
 ): HTMLElement {
   const item = document.createElement("div");
   item.className = `cred-item${isDomainMatch ? " domain-match" : ""}`;
+
+  const pinBtn = document.createElement("button");
+  pinBtn.className = `cred-item-pin${cred.pinned ? " pinned" : ""}`;
+  pinBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="${cred.pinned ? "currentColor" : "none"}"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+  pinBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const response = await sendMessage("TOGGLE_PIN", {
+      type: "password",
+      key: website,
+      index: credIndex,
+      pinned: !cred.pinned,
+    });
+    if (response?.success) {
+      await loadCredentials();
+    }
+  });
 
   const info = document.createElement("div");
   info.className = "cred-item-info";
@@ -337,6 +358,7 @@ function createCredItem(
   fill.className = "cred-item-fill";
   fill.textContent = "Fill";
 
+  item.appendChild(pinBtn);
   item.appendChild(info);
   item.appendChild(fill);
 

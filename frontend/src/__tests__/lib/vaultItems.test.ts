@@ -1,4 +1,4 @@
-import { flattenVaultItems, filterVaultItems } from "../../lib/vaultItems";
+import { flattenVaultItems, filterVaultItems, sortVaultItems } from "../../lib/vaultItems";
 import type { PasswordMap, NotesMap, FilesMap, VaultItem } from "../../types";
 
 const mockPasswords: PasswordMap = {
@@ -72,6 +72,115 @@ describe("flattenVaultItems", () => {
   it("returns empty array for empty vault", () => {
     const items = flattenVaultItems({}, {}, {});
     expect(items).toHaveLength(0);
+  });
+
+  it("propagates pinned field from credential to VaultItem", () => {
+    const passwords: PasswordMap = {
+      "github.com": [{ username: "user1", password: "pass1", pinned: true }],
+    };
+    const items = flattenVaultItems(passwords, {}, {});
+    expect(items[0]!.pinned).toBe(true);
+  });
+
+  it("sets pinned as undefined when not present on credential", () => {
+    const passwords: PasswordMap = {
+      "github.com": [{ username: "user1", password: "pass1" }],
+    };
+    const items = flattenVaultItems(passwords, {}, {});
+    expect(items[0]!.pinned).toBeUndefined();
+  });
+
+  it("propagates pinned field from note to VaultItem", () => {
+    const notes: NotesMap = {
+      "My Note": [{ type: "note", content: "secret", pinned: true }],
+    };
+    const items = flattenVaultItems({}, notes, {});
+    expect(items[0]!.pinned).toBe(true);
+  });
+
+  it("propagates pinned field from file to VaultItem", () => {
+    const files: FilesMap = {
+      "backup": [
+        {
+          type: "file",
+          file_id: "f1",
+          original_name: "backup.zip",
+          size: 1024,
+          uploaded_at: "2024-01-01T00:00:00Z",
+          pinned: true,
+        },
+      ],
+    };
+    const items = flattenVaultItems({}, {}, files);
+    expect(items[0]!.pinned).toBe(true);
+  });
+});
+
+describe("sortVaultItems", () => {
+  it("places pinned items before unpinned items", () => {
+    const items: VaultItem[] = [
+      { id: "1", type: "password", key: "a.com", index: 0 },
+      { id: "2", type: "password", key: "b.com", index: 0, pinned: true },
+      { id: "3", type: "note", key: "c", index: 0 },
+    ];
+    const sorted = sortVaultItems(items);
+    expect(sorted[0]!.id).toBe("2");
+    expect(sorted[0]!.pinned).toBe(true);
+  });
+
+  it("preserves relative order among pinned items", () => {
+    const items: VaultItem[] = [
+      { id: "1", type: "password", key: "first.com", index: 0, pinned: true },
+      { id: "2", type: "password", key: "second.com", index: 0, pinned: true },
+    ];
+    const sorted = sortVaultItems(items);
+    expect(sorted[0]!.id).toBe("1");
+    expect(sorted[1]!.id).toBe("2");
+  });
+
+  it("preserves relative order among unpinned items", () => {
+    const items: VaultItem[] = [
+      { id: "1", type: "password", key: "a.com", index: 0 },
+      { id: "2", type: "password", key: "b.com", index: 0 },
+    ];
+    const sorted = sortVaultItems(items);
+    expect(sorted[0]!.id).toBe("1");
+    expect(sorted[1]!.id).toBe("2");
+  });
+
+  it("handles empty array", () => {
+    expect(sortVaultItems([])).toEqual([]);
+  });
+
+  it("handles all items pinned", () => {
+    const items: VaultItem[] = [
+      { id: "1", type: "password", key: "a.com", index: 0, pinned: true },
+      { id: "2", type: "password", key: "b.com", index: 0, pinned: true },
+    ];
+    const sorted = sortVaultItems(items);
+    expect(sorted).toHaveLength(2);
+    expect(sorted[0]!.id).toBe("1");
+  });
+
+  it("handles no items pinned", () => {
+    const items: VaultItem[] = [
+      { id: "1", type: "password", key: "a.com", index: 0 },
+      { id: "2", type: "password", key: "b.com", index: 0 },
+    ];
+    const sorted = sortVaultItems(items);
+    expect(sorted[0]!.id).toBe("1");
+    expect(sorted[1]!.id).toBe("2");
+  });
+
+  it("does not mutate the original array", () => {
+    const items: VaultItem[] = [
+      { id: "1", type: "password", key: "a.com", index: 0 },
+      { id: "2", type: "password", key: "b.com", index: 0, pinned: true },
+    ];
+    const original = [...items];
+    sortVaultItems(items);
+    expect(items[0]!.id).toBe(original[0]!.id);
+    expect(items[1]!.id).toBe(original[1]!.id);
   });
 });
 

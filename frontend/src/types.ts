@@ -17,6 +17,7 @@ export interface Credential {
   notes?: string | null;
   recovery_questions?: RecoveryQuestion[] | null;
   history?: PasswordHistoryEntry[] | null;
+  pinned?: boolean;
 }
 
 export type PasswordMap = Record<string, Credential[]>;
@@ -26,6 +27,7 @@ export interface SecureNote {
   content: string;
   folder?: string | null;
   recovery_questions?: RecoveryQuestion[] | null;
+  pinned?: boolean;
 }
 
 export type NotesMap = Record<string, SecureNote[]>;
@@ -79,6 +81,7 @@ export interface SecureFile {
   description?: string | null;
   folder?: string | null;
   uploaded_at: string;
+  pinned?: boolean;
 }
 
 export type FilesMap = Record<string, SecureFile[]>;
@@ -90,6 +93,7 @@ export interface VaultItem {
   key: string;
   index: number;
   folder?: string | null;
+  pinned?: boolean;
   credential?: Credential;
   note?: SecureNote;
   file?: SecureFile;

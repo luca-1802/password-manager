@@ -14,6 +14,7 @@ import {
   FolderOpen,
   History,
   Clock,
+  Star,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { getLetterColor } from "../../lib/utils";
@@ -38,6 +39,7 @@ interface DetailPanelProps {
   onDownloadFile: (label: string, index: number) => Promise<unknown>;
   folders: string[];
   breachCount?: number | null;
+  onTogglePin?: (item: VaultItem) => void;
 }
 
 function CopyButton({ onCopy, isCopied, label }: { onCopy: () => void; isCopied?: boolean; label?: string }) {
@@ -116,6 +118,7 @@ export default function DetailPanel({
   onDownloadFile,
   folders,
   breachCount,
+  onTogglePin,
 }: DetailPanelProps) {
   const [editing, setEditing] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -234,6 +237,25 @@ export default function DetailPanel({
           </h2>
           <p className="text-sm text-text-muted capitalize font-medium mt-0.5">{item.type}</p>
         </div>
+        {onTogglePin && (
+          <button
+            onClick={() => onTogglePin(item)}
+            aria-label={item.pinned ? "Unpin item" : "Pin item"}
+            aria-pressed={!!item.pinned}
+            className={cn(
+              "p-2 rounded-full transition-colors",
+              item.pinned
+                ? "text-brand-primary hover:bg-brand-primary/10"
+                : "text-text-muted hover:bg-surface-hover"
+            )}
+          >
+            <Star
+              className="w-5 h-5"
+              fill={item.pinned ? "currentColor" : "none"}
+              aria-hidden="true"
+            />
+          </button>
+        )}
         <button
           onClick={onClose}
           aria-label="Close detail panel"

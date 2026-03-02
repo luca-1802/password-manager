@@ -117,6 +117,8 @@ def create_note():
                 entry["folder"] = folder
             if recovery_questions:
                 entry["recovery_questions"] = recovery_questions
+            if data.get("pinned") is True:
+                entry["pinned"] = True
 
             notes_data[title].append(entry)
             passwords["_notes"] = notes_data
@@ -196,6 +198,15 @@ def edit_note(index, title):
                     entries[index]["recovery_questions"] = rq
                 else:
                     entries[index].pop("recovery_questions", None)
+
+            if "pinned" in data:
+                pinned = data["pinned"]
+                if not isinstance(pinned, bool):
+                    return jsonify({"error": "Pinned must be a boolean"}), 400
+                if pinned:
+                    entries[index]["pinned"] = True
+                else:
+                    entries[index].pop("pinned", None)
 
             notes_data[title] = entries
             passwords["_notes"] = notes_data

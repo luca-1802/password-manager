@@ -15,6 +15,7 @@ export function flattenVaultItems(
         key: website,
         index,
         folder: cred.folder,
+        pinned: cred.pinned,
         credential: cred,
       });
     });
@@ -28,6 +29,7 @@ export function flattenVaultItems(
         key: title,
         index,
         folder: note.folder,
+        pinned: note.pinned,
         note,
       });
     });
@@ -41,6 +43,7 @@ export function flattenVaultItems(
         key: label,
         index,
         folder: file.folder,
+        pinned: file.pinned,
         file,
       });
     });
@@ -81,5 +84,14 @@ export function filterVaultItems(
     }
 
     return true;
+  });
+}
+
+export function sortVaultItems(items: VaultItem[]): VaultItem[] {
+  return [...items].sort((a, b) => {
+    const aPinned = a.pinned ? 1 : 0;
+    const bPinned = b.pinned ? 1 : 0;
+    if (aPinned !== bPinned) return bPinned - aPinned;
+    return 0;
   });
 }
