@@ -176,6 +176,9 @@ def upload_file():
                 entry["description"] = description
             if folder:
                 entry["folder"] = folder
+            pinned_str = request.form.get("pinned", "").strip().lower()
+            if pinned_str == "true":
+                entry["pinned"] = True
 
             files_data[label].append(entry)
             passwords["_files"] = files_data
@@ -311,6 +314,15 @@ def edit_file(index, label):
                     entries[index]["folder"] = folder
                 else:
                     entries[index].pop("folder", None)
+
+            if "pinned" in data:
+                pinned = data["pinned"]
+                if not isinstance(pinned, bool):
+                    return jsonify({"error": "Pinned must be a boolean"}), 400
+                if pinned:
+                    entries[index]["pinned"] = True
+                else:
+                    entries[index].pop("pinned", None)
 
             files_data[label] = entries
             passwords["_files"] = files_data

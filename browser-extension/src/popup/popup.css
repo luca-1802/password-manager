@@ -295,6 +295,46 @@ body {
   margin-top: 1px;
 }
 
+.cred-item-pin {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  color: #5c5549;
+  transition: color 0.15s ease, background-color 0.15s ease;
+  padding: 0;
+  margin-right: 4px;
+}
+
+.cred-item-pin svg {
+  width: 14px;
+  height: 14px;
+}
+
+.cred-item-pin:hover {
+  color: #d4a843;
+  background: rgba(212, 168, 67, 0.1);
+}
+
+.cred-item-pin.pinned {
+  color: #d4a843;
+}
+
+.cred-item .cred-item-pin:not(.pinned) {
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.cred-item:hover .cred-item-pin:not(.pinned) {
+  opacity: 1;
+}
+
 .cred-item-fill {
   flex-shrink: 0;
   font-size: 11px;

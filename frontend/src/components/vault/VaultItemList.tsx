@@ -14,6 +14,7 @@ interface VaultItemListProps {
   getBreachCount: (website: string, index: number) => number | null;
   onAdd: () => void;
   loading?: boolean;
+  onTogglePin?: (item: VaultItem) => void;
 }
 
 export default function VaultItemList({
@@ -26,6 +27,7 @@ export default function VaultItemList({
   getBreachCount,
   onAdd,
   loading = false,
+  onTogglePin,
 }: VaultItemListProps) {
   return (
     <div className="h-full flex flex-col">
@@ -94,6 +96,7 @@ export default function VaultItemList({
                     ? getBreachCount(item.key, item.index)
                     : null
                 }
+                onTogglePin={onTogglePin}
               />
             ))}
           </div>

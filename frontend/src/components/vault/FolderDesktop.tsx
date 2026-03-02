@@ -18,6 +18,7 @@ import {
   X,
   GripVertical,
   History,
+  Star,
 } from "lucide-react";
 import { cn, getLetterColor, LETTER_COLORS, getFolderColor, setFolderColor, renameFolderColor, deleteFolderColor } from "../../lib/utils";
 import type { FolderFilter, VaultItem } from "../../types";
@@ -37,6 +38,7 @@ interface FolderDesktopProps {
   onAdd: (type: "password" | "note" | "file") => void;
   getBreachCount?: (website: string, index: number) => number | null | undefined;
   onHistory?: () => void;
+  onTogglePin?: (item: VaultItem) => void;
 }
 
 function DroppableCard({
@@ -80,10 +82,12 @@ export function DraggableDesktopItem({
   item,
   onClick,
   breachCount,
+  onTogglePin,
 }: {
   item: VaultItem;
   onClick: () => void;
   breachCount?: number | null;
+  onTogglePin?: (item: VaultItem) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -149,6 +153,29 @@ export function DraggableDesktopItem({
         <GripVertical className="w-3.5 h-3.5" aria-hidden="true" />
       </button>
 
+      {onTogglePin && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onTogglePin(item);
+          }}
+          aria-label={item.pinned ? "Unpin item" : "Pin item"}
+          aria-pressed={!!item.pinned}
+          className={cn(
+            "absolute top-2 left-2 p-1.5 rounded-lg transition-all duration-150",
+            item.pinned
+              ? "text-brand-primary"
+              : "text-text-muted/40 hover:text-text-muted sm:opacity-0 sm:group-hover:opacity-100"
+          )}
+        >
+          <Star
+            className="w-3.5 h-3.5"
+            fill={item.pinned ? "currentColor" : "none"}
+            aria-hidden="true"
+          />
+        </button>
+      )}
+
       <div className="relative">
         <div
           className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center transition-all duration-200 group-hover:scale-110 group-hover:shadow-md"
@@ -193,6 +220,7 @@ export default function FolderDesktop({
   onAdd,
   getBreachCount,
   onHistory,
+  onTogglePin,
 }: FolderDesktopProps) {
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
@@ -677,6 +705,7 @@ export default function FolderDesktop({
                       ? getBreachCount(item.key, item.index)
                       : undefined
                   }
+                  onTogglePin={onTogglePin}
                 />
               </motion.div>
             ))}

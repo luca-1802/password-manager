@@ -6,6 +6,7 @@ import {
   GripVertical,
   AlertTriangle,
   ChevronRight,
+  Star,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { getLetterColor } from "../../lib/utils";
@@ -16,6 +17,7 @@ interface VaultItemRowProps {
   selected: boolean;
   onClick: () => void;
   breachCount?: number | null;
+  onTogglePin?: (item: VaultItem) => void;
 }
 
 export default function VaultItemRow({
@@ -23,6 +25,7 @@ export default function VaultItemRow({
   selected,
   onClick,
   breachCount,
+  onTogglePin,
 }: VaultItemRowProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -107,6 +110,29 @@ export default function VaultItemRow({
       </div>
 
       <div className="flex items-center gap-2.5 flex-shrink-0">
+        {onTogglePin && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onTogglePin(item);
+            }}
+            aria-label={item.pinned ? "Unpin item" : "Pin item"}
+            aria-pressed={!!item.pinned}
+            className={cn(
+              "p-1.5 rounded-lg transition-all duration-150",
+              item.pinned
+                ? "text-brand-primary"
+                : "text-text-muted opacity-0 group-hover:opacity-100"
+            )}
+          >
+            <Star
+              className="w-3.5 h-3.5"
+              fill={item.pinned ? "currentColor" : "none"}
+              aria-hidden="true"
+            />
+          </button>
+        )}
+
         {breachCount !== undefined &&
           breachCount !== null &&
           breachCount > 0 && (

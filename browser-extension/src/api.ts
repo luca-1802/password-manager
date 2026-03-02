@@ -94,3 +94,15 @@ export async function saveCredential(data: {
 }): Promise<ApiResponse> {
   return apiFetch("/passwords/", { method: "POST", body: data });
 }
+
+export async function togglePin(
+  type: string,
+  key: string,
+  index: number,
+  pinned: boolean
+): Promise<ApiResponse> {
+  return apiFetch("/passwords/pin", {
+    method: "PUT",
+    body: { type, key, index, pinned },
+  });
+}

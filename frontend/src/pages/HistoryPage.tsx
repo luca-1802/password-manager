@@ -75,8 +75,8 @@ function HistoryRow({
   const letterColor = getLetterColor(entry.website[0] || "a");
 
   return (
-    <div className="group bg-surface/50 backdrop-blur-sm border border-border-subtle rounded-2xl p-4 sm:p-5 hover:border-border hover:shadow-sm transition-all duration-200">
-      <div className="flex items-start gap-4">
+    <div className="group relative bg-surface/50 backdrop-blur-sm border border-border-subtle rounded-2xl p-4 sm:p-5 hover:border-border hover:shadow-sm transition-all duration-200">
+      <div className="flex items-start gap-3 sm:gap-4">
         <button
           onClick={onClick}
           className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white text-sm font-bold shadow-sm hover:scale-105 transition-transform cursor-pointer"
@@ -100,7 +100,7 @@ function HistoryRow({
           </p>
 
           <div className="flex items-center gap-2 mt-3">
-            <div className="flex-1 font-mono text-sm bg-surface-sunken rounded-lg px-3 py-2 border border-border-subtle min-w-0">
+            <div className="flex-1 font-mono text-sm bg-surface-sunken rounded-lg px-3 py-2 border border-border-subtle min-w-0 overflow-hidden">
               {visible ? (
                 <ColoredPassword password={entry.password} />
               ) : (
@@ -134,13 +134,13 @@ function HistoryRow({
               )}
             </button>
           </div>
-        </div>
 
-        <div className="flex items-center gap-1.5 text-xs text-text-muted flex-shrink-0 mt-1">
-          <Clock className="w-3.5 h-3.5" aria-hidden="true" />
-          <time dateTime={entry.changed_at} title={new Date(entry.changed_at).toLocaleString()}>
-            {formatRelativeTime(entry.changed_at)}
-          </time>
+          <div className="flex items-center gap-1.5 text-xs text-text-muted mt-2 sm:absolute sm:top-5 sm:right-5 sm:mt-0">
+            <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+            <time dateTime={entry.changed_at} title={new Date(entry.changed_at).toLocaleString()}>
+              {formatRelativeTime(entry.changed_at)}
+            </time>
+          </div>
         </div>
       </div>
     </div>

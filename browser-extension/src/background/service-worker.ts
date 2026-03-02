@@ -189,6 +189,24 @@ async function handleMessage(message: ExtensionMessage): Promise<unknown> {
       };
     }
 
+    case "TOGGLE_PIN": {
+      const { type, key, index, pinned } = message.payload as {
+        type: string;
+        key: string;
+        index: number;
+        pinned: boolean;
+      };
+      const res = await api.togglePin(type, key, index, pinned);
+      if (res.ok) {
+        await refreshVault();
+        return { success: true };
+      }
+      return {
+        error:
+          (res.data as Record<string, string>)?.error || "Failed to toggle pin",
+      };
+    }
+
     case "FILL_CREDENTIAL": {
       const tabs = await chrome.tabs.query({
         active: true,

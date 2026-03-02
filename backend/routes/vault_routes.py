@@ -256,6 +256,8 @@ def add_entry():
                 entry["notes"] = notes
             if recovery_questions:
                 entry["recovery_questions"] = recovery_questions
+            if data.get("pinned") is True:
+                entry["pinned"] = True
             passwords[website].append(entry)
             save_vault(key_raw, salt, vault_path, passwords)
     except Exception as e:
@@ -401,6 +403,15 @@ def edit_entry(index, website):
                 else:
                     entries[index].pop("recovery_questions", None)
 
+            if "pinned" in data:
+                pinned = data["pinned"]
+                if not isinstance(pinned, bool):
+                    return jsonify({"error": "Pinned must be a boolean"}), 400
+                if pinned:
+                    entries[index]["pinned"] = True
+                else:
+                    entries[index].pop("pinned", None)
+
             passwords[website] = entries
             save_vault(key_raw, salt, vault_path, passwords)
     except Exception as e:
@@ -430,3 +441,89 @@ def get_password_history(index, website):
 
     history = entries[index].get("history", [])
     return jsonify({"history": history})
+
+@vault_bp.route("/pin", methods=["PUT"])
+@require_auth
+def pin_entry():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    entry_type = data.get("type")
+    if entry_type not in ("password", "note", "file"):
+        return jsonify({"error": "Type must be 'password', 'note', or 'file'"}), 400
+
+    key = data.get("key")
+    if not key or not isinstance(key, str):
+        return jsonify({"error": "Key must be a non-empty string"}), 400
+
+    index = data.get("index")
+    if not isinstance(index, int) or index < 0:
+        return jsonify({"error": "Index must be a non-negative integer"}), 400
+
+    pinned = data.get("pinned")
+    if not isinstance(pinned, bool):
+        return jsonify({"error": "Pinned must be a boolean"}), 400
+
+    try:
+        key_raw, salt, vault_path = get_session_material()
+    except Exception as e:
+        logger.error("Failed to load vault session data: %s", e)
+        return jsonify({"error": "Failed to decrypt vault. Please log in again."}), 500
+
+    try:
+        with FileLock(vault_path + ".lock"):
+            passwords = load_passwords_with_key(key_raw, vault_path)
+
+            if entry_type == "password":
+                lookup_key = key.lower()
+                if lookup_key not in passwords:
+                    return jsonify({"error": "Entry not found"}), 404
+                entries = normalize_entries(passwords[lookup_key])
+                if index >= len(entries):
+                    return jsonify({"error": "Invalid index"}), 400
+                entry = entries[index]
+                if pinned:
+                    entry["pinned"] = True
+                else:
+                    entry.pop("pinned", None)
+                passwords[lookup_key] = entries
+            elif entry_type == "note":
+                notes_data = passwords.get("_notes", {})
+                if not isinstance(notes_data, dict) or key not in notes_data:
+                    return jsonify({"error": "Entry not found"}), 404
+                entries = notes_data[key]
+                if not isinstance(entries, list):
+                    entries = [entries]
+                if index >= len(entries):
+                    return jsonify({"error": "Invalid index"}), 400
+                entry = entries[index]
+                if pinned:
+                    entry["pinned"] = True
+                else:
+                    entry.pop("pinned", None)
+                notes_data[key] = entries
+                passwords["_notes"] = notes_data
+            elif entry_type == "file":
+                files_data = passwords.get("_files", {})
+                if not isinstance(files_data, dict) or key not in files_data:
+                    return jsonify({"error": "Entry not found"}), 404
+                entries = files_data[key]
+                if not isinstance(entries, list):
+                    entries = [entries]
+                if index >= len(entries):
+                    return jsonify({"error": "Invalid index"}), 400
+                entry = entries[index]
+                if pinned:
+                    entry["pinned"] = True
+                else:
+                    entry.pop("pinned", None)
+                files_data[key] = entries
+                passwords["_files"] = files_data
+
+            save_vault(key_raw, salt, vault_path, passwords)
+    except Exception as e:
+        logger.error("Failed to update vault data: %s", e)
+        return jsonify({"error": "Failed to decrypt vault. Please log in again."}), 500
+
+    return jsonify({"success": True})

@@ -36,6 +36,7 @@ export interface Credential {
   password: string;
   folder?: string | null;
   notes?: string | null;
+  pinned?: boolean;
 }
 
 export type PasswordMap = Record<string, Credential[]>;
@@ -52,7 +53,8 @@ export type MessageType =
   | "FORM_SUBMITTED"
   | "GET_PENDING_SAVE"
   | "DISMISS_PENDING_SAVE"
-  | "LOCK_VAULT";
+  | "LOCK_VAULT"
+  | "TOGGLE_PIN";
 
 export interface ExtensionMessage {
   type: MessageType;
